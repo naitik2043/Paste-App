@@ -1,42 +1,62 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom"
-import Home from "./components/Home"
-import Paste from "./components/Paste"
-import ViewPaste from "./components/ViewPaste"
-import Navbar from "./components/Navbar"
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
+import Home from "./pages/Home";
+import Paste from "./pages/Paste";
+import ViewPaste from "./pages/ViewPaste";
 
-const router = createBrowserRouter(
-  [
-    {
-      path:"/",
-      element:
-      <div className="w-full h-full flex flex-col">
-        <Navbar/>
-        <Home/>
-      </div>
-    },
-    {
-      path:"/pastes",
-      element: <div className="w-full h-full flex flex-col">
-      <Navbar/>
-      <Paste/>
-    </div>
-    },
-    {
-      path:"/pastes/:id",
-      element: <div className="w-full h-full flex flex-col">
-      <Navbar/>
-      <ViewPaste/>
-    </div>,
-    }
-  ]
-)
+import ScrollToTop from "./components/ScrollToTop";
+
+const Layout = ({ children }) => (
+  <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-950 transition-all">
+
+    {/* 🔝 SCROLL HANDLER */}
+    <ScrollToTop />
+
+    {/* Header */}
+    <Navbar />
+
+    {/* Page Content */}
+    <main className="flex-grow w-full">
+      {children}
+    </main>
+
+    {/* Footer */}
+    <Footer />
+
+  </div>
+);
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: (
+      <Layout>
+        <Home />
+      </Layout>
+    ),
+  },
+  {
+    path: "/pastes",
+    element: (
+      <Layout>
+        <Paste />
+      </Layout>
+    ),
+  },
+  {
+    path: "/pastes/:id",
+    element: (
+      <Layout>
+        <ViewPaste />
+      </Layout>
+    ),
+  },
+]);
 
 function App() {
-
-  return (
-    <RouterProvider router={router}/>
-  )
+  return <RouterProvider router={router} />;
 }
 
-export default App
+export default App;

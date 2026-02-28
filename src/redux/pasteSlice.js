@@ -1,70 +1,84 @@
-import { createSlice } from "@reduxjs/toolkit"
-import { toast } from "react-hot-toast"
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  pastes: localStorage.getItem("pastes")
-    ? JSON.parse(localStorage.getItem("pastes"))
-    : []
-}
+  pastes: JSON.parse(localStorage.getItem("pastes")) || [],
+};
+
+// ✅ helper
+const saveToLocalStorage = (pastes) => {
+  localStorage.setItem("pastes", JSON.stringify(pastes));
+};
 
 const pasteSlice = createSlice({
   name: "paste",
   initialState,
   reducers: {
     addToPastes: (state, action) => {
-      const paste = action.payload
-      const index = state.pastes.findIndex((item) => item._id === paste._id)
+      const paste = {
+        viewCount: 0,
+        isPinned: false,
+        ...action.payload,
+      };
 
-      if (index >= 0) {
-        // If the course is already in the Pastes, do not modify the quantity
-        toast.error("Paste already exist")
-        return
+      const exists = state.pastes.find((item) => item._id === paste._id);
+
+      if (!exists) {
+        state.pastes.push(paste);
+        saveToLocalStorage(state.pastes); // ⭐ added
       }
-      // If the course is not in the Pastes, add it to the Pastes
-      state.pastes.push(paste)
-      
-      // Update to localstorage
-      localStorage.setItem("pastes", JSON.stringify(state.pastes))
-      // show toast
-      toast.success("Paste added")
     },
 
     updatePastes: (state, action) => {
-      const paste = action.payload
-      const index = state.pastes.findIndex((item) => item._id === paste._id)
+      const index = state.pastes.findIndex(
+        (item) => item._id === action.payload._id,
+      );
 
-      if (index >= 0) {
-        // If the course is found in the Pastes, update it
-        state.pastes[index] = paste
-        // Update to localstorage
-        localStorage.setItem("pastes", JSON.stringify(state.pastes))
-        // show toast
-        toast.success("Paste updated")
+      if (index !== -1) {
+        state.pastes[index] = {
+          ...state.pastes[index],
+          ...action.payload,
+        };
+        saveToLocalStorage(state.pastes); // ⭐ added
       }
     },
+
     removeFromPastes: (state, action) => {
-      const pasteId = action.payload
+      state.pastes = state.pastes.filter((item) => item._id !== action.payload);
+      saveToLocalStorage(state.pastes); // ⭐ added
+    },
 
-      console.log(pasteId)
-      const index = state.pastes.findIndex((item) => item._id === pasteId)
+    resetPaste: (state) => {
+      state.pastes = [];
+      localStorage.removeItem("pastes"); // ⭐ added
+    },
 
-      if (index >= 0) {
-        // If the course is found in the Pastes, remove it
-        state.pastes.splice(index, 1)
-        // Update to localstorage
-        localStorage.setItem("pastes", JSON.stringify(state.pastes))
-        // show toast
-        toast.success("Paste deleted")
+    incrementViewCount: (state, action) => {
+      const paste = state.pastes.find((item) => item._id === action.payload);
+
+      if (paste) {
+        paste.viewCount = (paste.viewCount || 0) + 1;
+        saveToLocalStorage(state.pastes); // ⭐ added
       }
     },
-    resetPaste: (state) => {
-      state.pastes = []
-      // Update to localstorage
-      localStorage.removeItem("pastes")
+
+    togglePin: (state, action) => {
+      const paste = state.pastes.find((item) => item._id === action.payload);
+
+      if (paste) {
+        paste.isPinned = !paste.isPinned;
+        saveToLocalStorage(state.pastes); // ⭐ added
+      }
     },
   },
-})
+});
 
-export const { addToPastes, removeFromPastes, updatePastes } = pasteSlice.actions
+export const {
+  addToPastes,
+  updatePastes,
+  removeFromPastes,
+  resetPaste,
+  incrementViewCount,
+  togglePin,
+} = pasteSlice.actions;
 
-export default pasteSlice.reducer
+export default pasteSlice.reducer;
