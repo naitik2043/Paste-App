@@ -38,12 +38,10 @@ Built with **React + Vite + Redux Toolkit + Tailwind CSS**, it follows a **produ
 ## 🖼️ Screenshots
 
 ### 📊 Dashboard
-
-![Dashboard](./screenshots/dashboard.png)
+![Dashboard](./Dashboard.png)
 
 ### 📝 Paste View
-
-![Paste View](./screenshots/paste-view.png)
+![Paste View](./Paste%20View.png)
 
 ---
 
