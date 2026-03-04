@@ -72,7 +72,7 @@ const Footer = () => {
             </a>
 
             <a
-              href="https://yourportfolio.com"
+              href="https://naitikgupta.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-white transition"
