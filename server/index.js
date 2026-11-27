@@ -243,7 +243,7 @@ async function pasteCollection(req, res) {
     if (["snippet", "solution", "template", "notes"].includes(category)) filter.category = category;
     if (req.query?.pinned === "true") filter.isPinned = true;
     if (q) {
-      const escaped = q.split("").map((char) => ".^$*+?()[]{}|\\\\".includes(char) ? "\\\\" + char : char).join("");
+      const escaped = q.split("").map((char) => "\\^$.*+?()[]{}|".includes(char) ? "\\" + char : char).join("");
       const expression = new RegExp(escaped, "i");
       filter.$or = [
         { title: expression }, { content: expression }, { tags: expression },
