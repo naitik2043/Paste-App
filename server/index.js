@@ -13,6 +13,7 @@ const userSchema = new Schema({ tokenVersion: { type: Number, default: 0 } }, {
 const ticketSchema = new Schema({
   ticketId: { type: String, required: true, unique: true, index: true },
   userId: { type: Schema.Types.ObjectId, required: true, index: true },
+  tokenVersion: { type: Number, default: 0 },
   expiresAt: { type: Date, required: true, expires: 0 }
 }, { collection: "integration_tickets", timestamps: true, versionKey: false });
 const revisionSchema = new Schema({
@@ -191,32 +192,35 @@ function publicPaste(paste, includeContent) {
 
 async function authExchange(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
-  const token = bodyOf(req).ticket;
-  if (typeof token !== "string" || token.length > 5000) return send(res, 400, { error: "A valid LeetMetric launch ticket is required." });
-  try {
-    const payload = jwt.verify(token, secret(), { audience: "paste-app", issuer: "leetmetric" });
-    if (payload.purpose !== "paste-app-sso" || !payload.jti || !mongoose.isValidObjectId(payload.sub)) {
-      return send(res, 401, { error: "This launch ticket is not valid for Paste Vault." });
-    }
-    const ticket = await IntegrationTicket.findOneAndDelete({
-      ticketId: payload.jti, userId: payload.sub, expiresAt: { $gt: new Date() }
-    }).lean();
-    if (!ticket) return send(res, 401, { error: "This launch link expired or was already used. Reopen Paste Vault from LeetMetric." });
-    const user = await User.findById(payload.sub).select("_id name email tokenVersion").lean();
-    if (!user || Number(user.tokenVersion || 0) !== Number(payload.ver || 0)) {
-      return send(res, 401, { error: "Your LeetMetric account is no longer active. Sign in again." });
-    }
-    const sessionToken = jwt.sign({
-      sub: String(user._id), ver: Number(user.tokenVersion || 0), purpose: "paste-app-session"
-    }, secret(), { expiresIn: "7d", audience: "paste-app-session", issuer: "paste-app" });
-    setCookie(res, sessionToken);
-    return send(res, 200, { user: { id: String(user._id), name: user.name, email: user.email } });
-  } catch (error) {
-    if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
-      return send(res, 401, { error: "This launch link is invalid or expired. Reopen Paste Vault from LeetMetric." });
-    }
-    throw error;
+  const opaqueTicket = bodyOf(req).ticket;
+  if (typeof opaqueTicket !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(opaqueTicket)) {
+    return send(res, 400, { error: "A valid LeetMetric launch ticket is required." });
   }
+
+  // LeetMetric stores only this random one-time ticket's SHA-256 hash.
+  // Paste Vault never needs LeetMetric's JWT signing secret.
+  const ticketHash = crypto.createHash("sha256").update(opaqueTicket).digest("hex");
+  const ticket = await IntegrationTicket.findOneAndDelete({
+    ticketId: ticketHash,
+    expiresAt: { $gt: new Date() }
+  }).lean();
+  if (!ticket) return send(res, 401, { error: "This launch link expired or was already used. Reopen Paste Vault from LeetMetric." });
+
+  const user = await User.findById(ticket.userId).select("_id name email tokenVersion").lean();
+  if (!user || Number(user.tokenVersion || 0) !== Number(ticket.tokenVersion || 0)) {
+    return send(res, 401, { error: "Your LeetMetric account is no longer active. Sign in again." });
+  }
+  const sessionToken = jwt.sign({
+    sub: String(user._id),
+    ver: Number(user.tokenVersion || 0),
+    purpose: "paste-app-session"
+  }, secret(), {
+    expiresIn: "7d",
+    audience: "paste-app-session",
+    issuer: "paste-app"
+  });
+  setCookie(res, sessionToken);
+  return send(res, 200, { user: { id: String(user._id), name: user.name, email: user.email } });
 }
 async function authMe(req, res) {
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
