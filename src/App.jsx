@@ -1,62 +1,33 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { SessionProvider, useSession } from "./context/SessionContext";
+import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
 import Paste from "./pages/Paste";
 import ViewPaste from "./pages/ViewPaste";
+import SharedPaste from "./pages/SharedPaste";
+import LaunchGate from "./pages/LaunchGate";
 
-import ScrollToTop from "./components/ScrollToTop";
-
-const Layout = ({ children }) => (
-  <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-950 transition-all">
-
-    {/* 🔝 SCROLL HANDLER */}
-    <ScrollToTop />
-
-    {/* Header */}
-    <Navbar />
-
-    {/* Page Content */}
-    <main className="flex-grow w-full">
-      {children}
-    </main>
-
-    {/* Footer */}
-    <Footer />
-
-  </div>
-);
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: (
-      <Layout>
-        <Home />
-      </Layout>
-    ),
-  },
-  {
-    path: "/pastes",
-    element: (
-      <Layout>
-        <Paste />
-      </Layout>
-    ),
-  },
-  {
-    path: "/pastes/:id",
-    element: (
-      <Layout>
-        <ViewPaste />
-      </Layout>
-    ),
-  },
-]);
-
-function App() {
-  return <RouterProvider router={router} />;
+function LoadingScreen() {
+  return <div className="launch-screen"><div className="launch-card"><div className="launch-logo">PV</div><p className="eyebrow">SECURE WORKSPACE</p><h1>Preparing your vault…</h1><div className="loading-bar"></div></div></div>;
 }
 
-export default App;
+function SessionGate() {
+  const { user, loading } = useSession();
+  if (loading) return <LoadingScreen />;
+  if (!user) return <LaunchGate />;
+  return <AppShell />;
+}
+
+const router = createBrowserRouter([
+  { element: <SessionGate />, children: [
+    { path: "/", element: <Home /> },
+    { path: "/pastes", element: <Paste /> },
+    { path: "/pastes/:id", element: <ViewPaste /> }
+  ]},
+  { path: "/share/:shareId", element: <main className="page-container"><SharedPaste /></main> },
+  { path: "*", element: <Outlet /> }
+]);
+
+export default function App() {
+  return <SessionProvider><RouterProvider router={router} /></SessionProvider>;
+}

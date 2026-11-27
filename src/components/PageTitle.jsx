@@ -1,11 +1,8 @@
 import { useEffect } from "react";
 
-const PageTitle = ({ title }) => {
+export default function PageTitle({ title }) {
   useEffect(() => {
-    document.title = `${title} – PasteApp`;
+    document.title = title ? title + " | Paste Vault" : "Paste Vault — Private code workspace";
   }, [title]);
-
   return null;
-};
-
-export default PageTitle;
+}
