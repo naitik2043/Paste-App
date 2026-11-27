@@ -14,3 +14,27 @@
 html:not(.dark) .topbar{background:rgba(255,255,255,.94);border-color:#dfe5ee}html:not(.dark) .brand{color:#1f2b40}html:not(.dark) .main-nav a{color:#637087}html:not(.dark) .main-nav a.active,html:not(.dark) .main-nav a:hover{background:#edf3fc;color:#315d9e}html:not(.dark) .icon-button,html:not(.dark) .detail-actions button{background:#fff;border-color:#d8e0ec;color:#4c5b73}html:not(.dark) .stat-card,html:not(.dark) .editor-panel,html:not(.dark) .insight-panel,html:not(.dark) .paste-card,html:not(.dark) .filter-panel,html:not(.dark) .detail-main,html:not(.dark) .history-panel,html:not(.dark) .empty-panel{background:#fff;border-color:#dfe5ee}html:not(.dark) .stat-card strong,html:not(.dark) .panel-heading h2,html:not(.dark) .section-title-row h2,html:not(.dark) .paste-card-title,html:not(.dark) .detail-header h1{color:#1e2a3f}html:not(.dark) .snippet-form input,html:not(.dark) .snippet-form select,html:not(.dark) .snippet-form textarea,html:not(.dark) .filter-controls select,html:not(.dark) .search-box{background:#f8faff;border-color:#d9e1ed;color:#26344b}html:not(.dark) .search-box input{color:#26344b}html:not(.dark) .paste-card-meta,html:not(.dark) .language-breakdown,html:not(.dark) .history-list article{border-color:#e6ebf2}html:not(.dark) .code-toolbar,html:not(.dark) .code-block{background:#111827!important}html:not(.dark) .launch-screen{background:radial-gradient(ellipse at top,#d9e8ff 0,#f4f6fa 55%)}html:not(.dark) .launch-card{background:#fff;border-color:#dce4ef;color:#1d2a3e}html:not(.dark) .launch-copy,html:not(.dark) .trust-row{color:#687890}
 @media(max-width:950px){.workspace-grid{grid-template-columns:1fr}.paste-grid{grid-template-columns:repeat(2,1fr)}.filter-panel{align-items:stretch;flex-direction:column}.filter-controls{flex-wrap:wrap}}
 @media(max-width:650px){.topbar{height:auto;min-height:64px;flex-wrap:wrap;padding:12px 18px;gap:12px}.main-nav{order:3;margin:0;width:100%}.topbar-actions{gap:7px}.back-link{display:none}.user-chip{max-width:100px}.page-container{width:calc(100% - 32px);padding:32px 0 65px}.welcome-row,.detail-header{flex-direction:column}.welcome-row h1{font-size:36px}.stats-grid{grid-template-columns:repeat(2,1fr);gap:9px}.stat-card{padding:15px}.stat-card strong{font-size:23px}.editor-panel,.insight-panel{padding:17px}.form-row{grid-template-columns:1fr}.paste-grid{grid-template-columns:1fr}.filter-controls{align-items:stretch}.filter-controls select{flex:1}.detail-actions{justify-content:flex-start}.detail-layout{grid-template-columns:1fr}.detail-header h1{font-size:29px}.launch-card{padding:30px 23px}.launch-card h1{font-size:29px}.app-footer{flex-direction:column}}
+
+.learning-notes {
+  margin: 20px;
+  padding: 20px;
+  border: 1px solid #2b3c58;
+  border-radius: 12px;
+  background: linear-gradient(140deg, rgba(24, 42, 68, .9), rgba(16, 24, 39, .95));
+}
+.learning-notes > .eyebrow { margin-bottom: 16px; }
+.learning-notes h3 { margin: 0 0 7px; color: #dce8fb; font-size: 12px; }
+.learning-notes p { margin: 0; color: #9baac0; font-size: 11px; line-height: 1.8; white-space: pre-wrap; }
+.learning-notes > div + div { margin-top: 18px; }
+.learning-notes .complexity-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.complexity-row span { min-width: 120px; display: flex; flex-direction: column; gap: 4px; background: #0c1627; border: 1px solid #2b3c58; border-radius: 8px; padding: 10px 12px; }
+.complexity-row small { color: #7e91ae; font: 9px "DM Mono", monospace; letter-spacing: .8px; }
+.complexity-row strong { color: #9ec0ff; font: 600 12px "DM Mono", monospace; }
+.edit-snippet-form { margin-bottom: 22px; }
+.edit-snippet-form .panel-heading { margin-bottom: 6px; }
+.edit-snippet-form .panel-heading .icon-button { flex: 0 0 36px; }
+html:not(.dark) .learning-notes { background: #f6f9ff; border-color: #dbe4f2; }
+html:not(.dark) .learning-notes h3 { color: #20314b; }
+html:not(.dark) .learning-notes p { color: #52627a; }
+html:not(.dark) .complexity-row span { background: #fff; border-color: #dce5f2; }
+html:not(.dark) .complexity-row strong { color: #315e9d; }
