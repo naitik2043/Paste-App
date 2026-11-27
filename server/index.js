@@ -107,8 +107,36 @@ async function requireUser(req) {
   return user;
 }
 function makeError(res, error, fallback) {
-  const status = Number(error.status) || 400;
-  return send(res, status, { error: status >= 500 ? error.message || fallback : error.message });
+  const status = Number(error.status) || (error.code === 11000 ? 409 : error.name === "ValidationError" ? 400 : 500);
+  const message = status >= 500
+    ? fallback
+    : status === 409
+      ? "A conflicting record already exists. Refresh and try again."
+      : error.message;
+  return send(res, status, { error: message });
+}
+
+function addHistoryRevision(paste) {
+  paste.history.unshift({
+    revisionId: crypto.randomUUID(),
+    title: paste.title,
+    content: paste.content,
+    language: paste.language,
+    tags: paste.tags,
+    changedAt: new Date()
+  });
+  paste.history = paste.history.slice(0, 20);
+
+  // Keep revision snapshots well below MongoDB's 16 MB document limit.
+  let storedBytes = 0;
+  const retained = [];
+  for (const revision of paste.history) {
+    const revisionBytes = Buffer.byteLength(String(revision.content || ""), "utf8");
+    if (retained.length > 0 && storedBytes + revisionBytes > 5 * 1024 * 1024) continue;
+    retained.push(revision);
+    storedBytes += revisionBytes;
+  }
+  paste.history = retained;
 }
 function publicPaste(paste, includeContent) {
   const result = {
@@ -197,6 +225,10 @@ async function pasteCollection(req, res) {
   if (req.method === "POST") {
     try {
       const data = normalizePaste(bodyOf(req));
+      const existingCount = await CodePaste.countDocuments({ userId: user._id });
+      if (existingCount >= 2000) {
+        return send(res, 409, { error: "Your vault has reached its 2,000-snippet limit. Export or remove older snippets to make room." });
+      }
       const paste = await CodePaste.create({
         ...data, userId: user._id,
         shareId: data.visibility === "unlisted" ? crypto.randomBytes(18).toString("base64url") : undefined
@@ -218,15 +250,11 @@ async function pasteItem(req, res, id, action) {
     const revisionId = String(bodyOf(req).revisionId || "");
     const revision = paste.history.find((entry) => entry.revisionId === revisionId);
     if (!revision) return send(res, 404, { error: "That version is no longer available." });
-    paste.history.unshift({
-      revisionId: crypto.randomUUID(), title: paste.title, content: paste.content,
-      language: paste.language, tags: paste.tags, changedAt: new Date()
-    });
+    addHistoryRevision(paste);
     paste.title = revision.title;
     paste.content = revision.content;
     paste.language = revision.language;
     paste.tags = revision.tags;
-    paste.history = paste.history.slice(0, 20);
     await paste.save();
     return send(res, 200, { paste: publicPaste(paste, true) });
   }
@@ -242,13 +270,7 @@ async function pasteItem(req, res, id, action) {
     const data = normalizePaste(body, paste);
     const changed = data.title !== paste.title || data.content !== paste.content ||
       data.language !== paste.language || JSON.stringify(data.tags) !== JSON.stringify(paste.tags || []);
-    if (changed) {
-      paste.history.unshift({
-        revisionId: crypto.randomUUID(), title: paste.title, content: paste.content,
-        language: paste.language, tags: paste.tags, changedAt: new Date()
-      });
-      paste.history = paste.history.slice(0, 20);
-    }
+    if (changed) addHistoryRevision(paste);
     Object.assign(paste, data);
     if (body.isPinned !== undefined) paste.isPinned = Boolean(body.isPinned);
     if (data.visibility === "private") paste.shareId = undefined;
