@@ -1,222 +1,71 @@
-# 🚀 PasteApp – Smart Paste Manager
+# Paste Vault
 
-<p align="center">
-  <img src="https://img.shields.io/badge/build-passing-brightgreen" />
-  <img src="https://img.shields.io/badge/stack-React%20%7C%20Redux%20Toolkit%20%7C%20Tailwind-blue" />
-  <img src="https://img.shields.io/badge/deploy-Vercel-black" />
-  <img src="https://img.shields.io/badge/license-MIT-yellow" />
-</p>
+A private, searchable code workspace connected to LeetMetric.
 
-<p align="center">
-  🔗 <strong>Live Demo:</strong>  
-  <a href="https://paste-app-wine.vercel.app" target="_blank">
-    paste-app-wine.vercel.app
-  </a>
-</p>
+Paste Vault captures LeetCode solutions, reusable code patterns and debugging notes so that you can retrieve the approach behind a solution, not only the code.
 
----
+## Product capabilities
 
-## ✨ Overview
+- Private-by-default snippets with explicit unlisted-link sharing.
+- Syntax-aware code rendering for common programming languages.
+- Search by title, code content, problem title, tags and topic.
+- Filter by language, category and pinned status.
+- LeetCode context: problem title, canonical URL, difficulty and topic/pattern.
+- Workspace analytics for snippet totals, pinned items, share links, storage and languages.
+- Up to 20 saved revisions per snippet, with restore.
+- Copy-ready detail view and direct problem navigation.
+- Responsive light/dark interface and installable PWA shell.
+- One-time SSO handoff from a signed-in LeetMetric dashboard.
+- Server-side ownership checks for private reads, updates and deletes.
 
-**PasteApp** is a modern, scalable paste management web application that allows users to create, organize, search, and analyze their pastes with a blazing-fast and responsive UI.
+## Integration architecture
 
-Built with **React + Vite + Redux Toolkit + Tailwind CSS**, it follows a **production-ready architecture** and is designed for future backend & authentication integration.
+LeetMetric validates the user's active session and issues a short-lived, one-time launch ticket. Paste Vault consumes that ticket through its API, verifies the shared signing secret and creates a separate HttpOnly Paste Vault session. The token is passed in the URL fragment so it is not sent in the initial HTTP request.
 
----
+Both Vercel projects use the same MongoDB database and JWT signing secret. LeetMetric users and account deletion remain owned by LeetMetric; Paste Vault stores snippets in its own code_pastes collection linked by user ID.
 
-## 🧠 Key Highlights
+## Environment variables
 
-⚡ Lightning fast with Vite
-🧩 Scalable state management using Redux Toolkit
-🌙 System-aware dark mode + manual toggle
-📊 Built-in analytics dashboard
-📱 Fully responsive mobile-first UI
-🧱 Clean & extensible architecture
+On Paste-App (Paste Vault), set:
+- MONGODB_URI — same database used by LeetMetric.
+- JWT_SECRET — exactly the same signing secret as LeetMetric (minimum 32 characters).
 
----
+On LeetMetric, set:
+- PASTE_APP_URL — https://paste-app-wine.vercel.app
+- MONGODB_URI — same database used by Paste Vault.
+- JWT_SECRET — same signing secret as Paste Vault.
 
-## 🖼️ Screenshots
+Never commit .env files, connection strings or secrets. Configure them in Vercel Project Settings → Environment Variables, then redeploy both projects.
 
-### 📊 Dashboard
-![Dashboard](./Dashboard.png)
+## Local development
 
-### 📝 Paste View
-![Paste View](./Paste%20View.png)
+Run npm install, then npm run dev.
 
----
+Run the quality checks with npm run check. Authenticated API routes require MongoDB and a valid launch ticket from LeetMetric.
 
-## 🔥 Features
+## API overview
 
-* 📝 Create & edit pastes
-* 🔍 Smart search (title + content)
-* 📌 Pin / unpin important pastes
-* 👁 View counter for analytics
-* 🕒 Recently created section
-* 📊 Dashboard statistics
-* 🔥 Most viewed pastes
-* 🌙 Dark mode (auto + manual)
-* 📱 Mobile responsive navigation
-* 🔔 Toast notifications
-* 🧭 Dynamic page titles
-* ⬆ Scroll-to-top on route change
+| Method | Route | Purpose |
+| --- | --- | --- |
+| POST | /api/auth/exchange | Consume a one-time LeetMetric launch ticket |
+| GET | /api/auth/me | Read current Paste Vault session |
+| POST | /api/auth/logout | Clear Paste Vault session |
+| GET / POST | /api/pastes | Search/list or create snippets |
+| GET / PATCH / DELETE | /api/pastes/:id | Read or manage an owned snippet |
+| POST | /api/pastes/:id/restore | Restore a saved version |
+| GET | /api/stats | Workspace and language insights |
+| GET | /api/share/:shareId | Read an explicitly unlisted snippet |
 
----
+## Privacy and safety
 
-## 🏗️ Architecture
+- New snippets are private.
+- Anyone with an unlisted link can view that snippet. Unlisted links are not suitable for secrets.
+- Do not paste passwords, API keys, private keys, session tokens or sensitive personal data.
+- Paste Vault does not execute submitted code.
+- Private operations require a valid session and are scoped to the signed-in LeetMetric user.
+- LeetMetric account deletion is designed to remove that user's snippets and unused SSO tickets.
+- Shared recipients can copy content; copied content cannot be recalled.
 
-✔ Component-based UI
-✔ Page-based routing
-✔ Centralized global state (Redux)
-✔ Layout wrapper system
-✔ Feature-first folder structure
+## License
 
-**Designed for future integration:**
-
-* 🔐 Authentication
-* ☁ Cloud sync
-* 🌍 REST / GraphQL APIs
-* 🗄 Database
-
----
-
-## 🛠️ Tech Stack
-
-### 🎨 Frontend
-
-* React
-* Vite
-* Tailwind CSS
-* React Router DOM
-* Redux Toolkit
-* React Redux
-* Lucide React
-* React Hot Toast
-
-### ⚙️ Tooling
-
-* ESLint
-* PostCSS
-* Autoprefixer
-
----
-
-## 📂 Project Structure
-
-```
-PasteApp
-├── public
-├── src
-│   ├── assets
-│   ├── components
-│   ├── data
-│   ├── features
-│   ├── layout
-│   ├── pages
-│   ├── redux
-│   ├── utils
-│   ├── App.jsx
-│   └── main.jsx
-```
-
----
-
-## 📊 Dashboard Analytics
-
-* Total pastes
-* Pinned pastes
-* Recently created
-* Most viewed
-
----
-
-## 🌙 Dark Mode
-
-* System theme auto-detect
-* Manual toggle
-* Preference saved in localStorage
-
----
-
-## ⚡ Performance Optimizations
-
-* Redux Toolkit for efficient state updates
-* Memoized UI rendering
-* Vite for instant HMR & optimized builds
-* Component reusability for minimal re-renders
-
----
-
-## 🚀 Getting Started
-
-### 1️⃣ Clone the repository
-
-```bash
-git clone https://github.com/naitik2043/Paste-App.git
-cd Paste-App
-```
-
-### 2️⃣ Install dependencies
-
-```bash
-npm install
-```
-
-### 3️⃣ Start development server
-
-```bash
-npm run dev
-```
-
----
-
-## 📦 Available Scripts
-
-```bash
-npm run dev      # Start dev server
-npm run build    # Production build
-npm run preview  # Preview production build
-npm run lint     # Run ESLint
-```
-
----
-
-## 🧪 Future Enhancements
-
-* 🔐 User authentication
-* ☁ Cloud sync (Firebase / Appwrite)
-* 🏷 Tags & categories
-* 📋 Copy as Markdown / code highlight
-* 🔗 Shareable paste links
-* 🗄 Backend database
-* 📥 Export pastes
-
----
-
-## 🏆 Resume Description (ATS Optimized)
-
-**Developed a scalable paste management web app using React, Vite, Redux Toolkit, and Tailwind CSS. Implemented CRUD operations, real-time search, pinning, analytics dashboard, dark mode with system detection, and responsive UI. Optimized global state handling and deployed on Vercel for production use.**
-
----
-
-## 👨‍💻 Author
-
-**Naitik Gupta**
-
-* GitHub: https://github.com/naitik2043
-* LinkedIn: https://linkedin.com/in/naitik2043
-
----
-
-## ⭐ Support
-
-If you like this project:
-
-* 🌟 Star the repo
-* 🍴 Fork it
-* 🛠 Contribute
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License**.
+MIT. See LICENSE.

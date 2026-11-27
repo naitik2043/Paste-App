@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
-import validation from "./validation.js";
+import * as validation from "./validation.js";
 
 const { normalizePaste, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
