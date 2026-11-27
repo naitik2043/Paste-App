@@ -20,6 +20,15 @@ const revisionSchema = new Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
   language: { type: String, required: true },
+  category: { type: String, default: "solution" },
+  problemTitle: { type: String, default: "" },
+  problemUrl: { type: String, default: "" },
+  difficulty: { type: String, default: "" },
+  topic: { type: String, default: "" },
+  approach: { type: String, default: "" },
+  timeComplexity: { type: String, default: "" },
+  spaceComplexity: { type: String, default: "" },
+  keyTakeaway: { type: String, default: "" },
   tags: { type: [String], default: [] },
   changedAt: { type: Date, required: true }
 }, { _id: false });
@@ -33,6 +42,10 @@ const pasteSchema = new Schema({
   problemUrl: { type: String, default: "", maxlength: 250 },
   difficulty: { type: String, enum: ["", "Easy", "Medium", "Hard"], default: "" },
   topic: { type: String, default: "", maxlength: 60 },
+  approach: { type: String, default: "", maxlength: 2000 },
+  timeComplexity: { type: String, default: "", maxlength: 80 },
+  spaceComplexity: { type: String, default: "", maxlength: 80 },
+  keyTakeaway: { type: String, default: "", maxlength: 1000 },
   tags: { type: [String], default: [] },
   visibility: { type: String, enum: ["private", "unlisted"], default: "private" },
   shareId: { type: String, sparse: true, unique: true },
@@ -122,6 +135,15 @@ function addHistoryRevision(paste) {
     title: paste.title,
     content: paste.content,
     language: paste.language,
+    category: paste.category,
+    problemTitle: paste.problemTitle,
+    problemUrl: paste.problemUrl,
+    difficulty: paste.difficulty,
+    topic: paste.topic,
+    approach: paste.approach,
+    timeComplexity: paste.timeComplexity,
+    spaceComplexity: paste.spaceComplexity,
+    keyTakeaway: paste.keyTakeaway,
     tags: paste.tags,
     changedAt: new Date()
   });
@@ -143,7 +165,12 @@ function publicPaste(paste, includeContent) {
     id: String(paste._id), title: paste.title, language: paste.language,
     category: paste.category, problemTitle: paste.problemTitle || "",
     problemUrl: paste.problemUrl || "", difficulty: paste.difficulty || "",
-    topic: paste.topic || "", tags: paste.tags || [],
+    topic: paste.topic || "",
+    approach: paste.approach || "",
+    timeComplexity: paste.timeComplexity || "",
+    spaceComplexity: paste.spaceComplexity || "",
+    keyTakeaway: paste.keyTakeaway || "",
+    tags: paste.tags || [],
     visibility: paste.visibility, shareId: paste.visibility === "unlisted" ? paste.shareId : "",
     isPinned: Boolean(paste.isPinned), viewCount: Number(paste.viewCount || 0),
     historyCount: (paste.history || []).length, createdAt: paste.createdAt, updatedAt: paste.updatedAt
@@ -152,7 +179,11 @@ function publicPaste(paste, includeContent) {
     result.content = paste.content;
     result.history = (paste.history || []).map((revision) => ({
       revisionId: revision.revisionId, title: revision.title,
-      language: revision.language, tags: revision.tags, changedAt: revision.changedAt
+      language: revision.language, category: revision.category,
+      problemTitle: revision.problemTitle, difficulty: revision.difficulty,
+      topic: revision.topic, approach: revision.approach,
+      timeComplexity: revision.timeComplexity, spaceComplexity: revision.spaceComplexity,
+      keyTakeaway: revision.keyTakeaway, tags: revision.tags, changedAt: revision.changedAt
     }));
   } else result.preview = String(paste.content || "").slice(0, 260);
   return result;
@@ -214,7 +245,10 @@ async function pasteCollection(req, res) {
     if (q) {
       const escaped = q.split("").map((char) => ".^$*+?()[]{}|\\\\".includes(char) ? "\\\\" + char : char).join("");
       const expression = new RegExp(escaped, "i");
-      filter.$or = [{ title: expression }, { content: expression }, { tags: expression }, { problemTitle: expression }];
+      filter.$or = [
+        { title: expression }, { content: expression }, { tags: expression },
+        { problemTitle: expression }, { approach: expression }, { keyTakeaway: expression }, { topic: expression }
+      ];
     }
     const [items, total] = await Promise.all([
       CodePaste.find(filter).sort({ isPinned: -1, updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
@@ -254,6 +288,15 @@ async function pasteItem(req, res, id, action) {
     paste.title = revision.title;
     paste.content = revision.content;
     paste.language = revision.language;
+    paste.category = revision.category || paste.category;
+    paste.problemTitle = revision.problemTitle || "";
+    paste.problemUrl = revision.problemUrl || "";
+    paste.difficulty = revision.difficulty || "";
+    paste.topic = revision.topic || "";
+    paste.approach = revision.approach || "";
+    paste.timeComplexity = revision.timeComplexity || "";
+    paste.spaceComplexity = revision.spaceComplexity || "";
+    paste.keyTakeaway = revision.keyTakeaway || "";
     paste.tags = revision.tags;
     await paste.save();
     return send(res, 200, { paste: publicPaste(paste, true) });
@@ -268,8 +311,9 @@ async function pasteItem(req, res, id, action) {
   try {
     const body = bodyOf(req);
     const data = normalizePaste(body, paste);
-    const changed = data.title !== paste.title || data.content !== paste.content ||
-      data.language !== paste.language || JSON.stringify(data.tags) !== JSON.stringify(paste.tags || []);
+    const changed = Object.keys(data).some((key) =>
+      JSON.stringify(data[key]) !== JSON.stringify(paste[key] ?? (key === "tags" ? [] : ""))
+    );
     if (changed) addHistoryRevision(paste);
     Object.assign(paste, data);
     if (body.isPinned !== undefined) paste.isPinned = Boolean(body.isPinned);
