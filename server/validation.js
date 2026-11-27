@@ -51,7 +51,7 @@ export function normalizePaste(input, current) {
   if (!["private", "unlisted"].includes(visibility)) throw invalid("Choose Private or Unlisted visibility.");
   if (!["", "Easy", "Medium", "Hard"].includes(difficulty)) throw invalid("Choose a valid problem difficulty.");
 
-  return {
+  const result = {
     title,
     content,
     language,
@@ -63,8 +63,18 @@ export function normalizePaste(input, current) {
       ? normalizeProblemUrl(source.problemUrl)
       : current?.problemUrl || "",
     topic: String(source.topic ?? current?.topic ?? "").trim().slice(0, 60),
+    approach: String(source.approach ?? current?.approach ?? "").trim(),
+    timeComplexity: String(source.timeComplexity ?? current?.timeComplexity ?? "").trim(),
+    spaceComplexity: String(source.spaceComplexity ?? current?.spaceComplexity ?? "").trim(),
+    keyTakeaway: String(source.keyTakeaway ?? current?.keyTakeaway ?? "").trim(),
     tags: Object.prototype.hasOwnProperty.call(source, "tags")
       ? normalizeTags(source.tags)
       : current?.tags || []
   };
+
+  if (result.approach.length > 2000) throw invalid("Approach notes must be 2,000 characters or fewer.");
+  if (result.timeComplexity.length > 80 || result.spaceComplexity.length > 80) {
+    throw invalid("Complexity notes must be 80 characters or fewer.");
+  }
+  if (result.keyTakeaway.length > 1000) throw invalid("Key takeaway must be 1,000 characters or fewer.");
 }
