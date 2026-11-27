@@ -5,7 +5,11 @@ import toast from "react-hot-toast";
 import PasteCard from "../components/PasteCard";
 import PageTitle from "../components/PageTitle";
 
-const emptyForm = { title: "", content: "", language: "cpp", category: "solution", problemTitle: "", problemUrl: "", difficulty: "Medium", topic: "", tags: "", visibility: "private" };
+const emptyForm = {
+  title: "", content: "", language: "cpp", category: "solution", problemTitle: "",
+  problemUrl: "", difficulty: "Medium", topic: "", approach: "", timeComplexity: "",
+  spaceComplexity: "", keyTakeaway: "", tags: "", visibility: "private"
+};
 
 export default function Home() {
   const [searchParams] = useSearchParams();
@@ -81,7 +85,15 @@ export default function Home() {
               <div><label htmlFor="snippet-category">TYPE</label><select id="snippet-category" value={form.category} onChange={(e) => update("category", e.target.value)}><option value="solution">LeetCode solution</option><option value="snippet">Code snippet</option><option value="template">Template</option><option value="notes">Notes</option></select></div>
             </div>
             <label htmlFor="snippet-content">CODE / NOTES <span className="label-muted">UP TO 1 MB</span></label>
-            <textarea id="snippet-content" className="code-input" value={form.content} onChange={(e) => update("content", e.target.value)} placeholder={"// Capture the approach, edge cases and implementation…"} rows={11} required />
+            <textarea id="snippet-content" className="code-input" value={form.content} onChange={(e) => update("content", e.target.value)} placeholder={"// Your accepted or reusable implementation…"} rows={11} required />
+            <label htmlFor="snippet-approach">APPROACH / INTUITION <span className="label-muted">UP TO 2,000 CHARACTERS</span></label>
+            <textarea id="snippet-approach" value={form.approach} maxLength={2000} onChange={(e) => update("approach", e.target.value)} placeholder="Why does this approach work? Describe the key observation and algorithm." rows={4} />
+            <div className="form-row">
+              <div><label htmlFor="snippet-time">TIME COMPLEXITY</label><input id="snippet-time" value={form.timeComplexity} maxLength={80} onChange={(e) => update("timeComplexity", e.target.value)} placeholder="e.g. O(n log n)" /></div>
+              <div><label htmlFor="snippet-space">SPACE COMPLEXITY</label><input id="snippet-space" value={form.spaceComplexity} maxLength={80} onChange={(e) => update("spaceComplexity", e.target.value)} placeholder="e.g. O(n)" /></div>
+            </div>
+            <label htmlFor="snippet-takeaway">KEY TAKEAWAY / EDGE CASES <span className="label-muted">UP TO 1,000 CHARACTERS</span></label>
+            <textarea id="snippet-takeaway" value={form.keyTakeaway} maxLength={1000} onChange={(e) => update("keyTakeaway", e.target.value)} placeholder="What did you learn? Which edge case or mistake should you remember?" rows={3} />
             <div className="form-row">
               <div><label htmlFor="snippet-problem">LEETCODE PROBLEM</label><input id="snippet-problem" value={form.problemTitle} maxLength={120} onChange={(e) => update("problemTitle", e.target.value)} placeholder="e.g. Two Sum" /></div>
               <div><label htmlFor="snippet-difficulty">DIFFICULTY</label><select id="snippet-difficulty" value={form.difficulty} onChange={(e) => update("difficulty", e.target.value)}><option value="">Not set</option><option>Easy</option><option>Medium</option><option>Hard</option></select></div>
