@@ -1,5 +1,5 @@
 import { ArrowUpRight, Code2, LockKeyhole, ShieldCheck } from "lucide-react";
-import { LEETMETRIC_URL } from "../context/SessionContext";
+import { LEETMETRIC_URL } from "../constants";
 
 export default function LaunchGate() {
   return (
