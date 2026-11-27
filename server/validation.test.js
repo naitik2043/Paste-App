@@ -38,3 +38,23 @@ test("normalizes a LeetCode solution payload", () => {
   assert.deepEqual(paste.tags, ["binary search", "arrays"]);
   assert.equal(paste.visibility, "private");
 });
+
+test("stores structured intuition, complexity and review takeaways", () => {
+  const paste = normalizePaste({
+    title: "Sliding Window",
+    content: "int solve() { return 0; }",
+    approach: "Maintain a moving window and shrink it while the constraint is violated.",
+    timeComplexity: "O(n)",
+    spaceComplexity: "O(1)",
+    keyTakeaway: "Check the empty window and repeated characters."
+  });
+  assert.equal(paste.approach.startsWith("Maintain a moving window"), true);
+  assert.equal(paste.timeComplexity, "O(n)");
+  assert.equal(paste.spaceComplexity, "O(1)");
+  assert.match(paste.keyTakeaway, /repeated characters/);
+  assert.throws(() => normalizePaste({
+    title: "Too much approach",
+    content: "code",
+    approach: "x".repeat(2001)
+  }), /2,000 characters/);
+});
