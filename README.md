@@ -11,6 +11,8 @@ Paste Vault captures LeetCode solutions, reusable code patterns and debugging no
 - Search by title, code content, problem title, tags and topic.
 - Filter by language, category and pinned status.
 - LeetCode context: problem title, canonical URL, difficulty and topic/pattern.
+- Structured solution journal: approach/intuition, time complexity, space complexity and key takeaways/edge cases.
+- Full snippet editing with automatic version snapshots and restore.
 - Workspace analytics for snippet totals, pinned items, share links, storage and languages.
 - Up to 20 saved revisions per snippet, with restore.
 - Copy-ready detail view and direct problem navigation.
