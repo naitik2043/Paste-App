@@ -13,7 +13,7 @@ test("accepts canonical LeetCode links and rejects other hosts", () => {
     "https://leetcode.com/problems/two-sum/"
   );
   assert.throws(() => normalizeProblemUrl("https://evil.example/problems/two-sum"), /leetcode.com/);
-  assert.throws(() => normalizeProblemUrl("javascript:alert(1)"), /valid LeetCode/);
+  assert.throws(() => normalizeProblemUrl("javascript:alert(1)"), /leetcode.com/);
 });
 
 test("validates required content and the 1 MB content limit", () => {
