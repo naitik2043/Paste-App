@@ -1,6 +1,6 @@
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const { normalizeTags, normalizeProblemUrl, normalizePaste } = require("./validation.js");
+import test from "node:test";
+import assert from "node:assert/strict";
+import { normalizeTags, normalizeProblemUrl, normalizePaste } from "./validation.js";
 
 test("normalizes tags, removes duplicates and limits the collection", () => {
   assert.deepEqual(normalizeTags([" DP ", "dp", "Graphs", "", "arrays"]), ["dp", "graphs", "arrays"]);
@@ -8,15 +8,20 @@ test("normalizes tags, removes duplicates and limits the collection", () => {
 });
 
 test("accepts canonical LeetCode links and rejects other hosts", () => {
-  assert.equal(normalizeProblemUrl("https://leetcode.com/problems/two-sum/?envType=study-plan"), "https://leetcode.com/problems/two-sum/");
+  assert.equal(
+    normalizeProblemUrl("https://leetcode.com/problems/two-sum/?envType=study-plan"),
+    "https://leetcode.com/problems/two-sum/"
+  );
   assert.throws(() => normalizeProblemUrl("https://evil.example/problems/two-sum"), /leetcode.com/);
   assert.throws(() => normalizeProblemUrl("javascript:alert(1)"), /valid LeetCode/);
 });
 
-test("validates required content and 1 MB input cap", () => {
+test("validates required content and the 1 MB content limit", () => {
   assert.throws(() => normalizePaste({ title: "A", content: "x" }), /2 and 100/);
   assert.throws(() => normalizePaste({ title: "Valid title", content: "  " }), /cannot be empty/);
-  assert.throws(() => normalizePaste({ title: "Valid title", content: "x".repeat(1024 * 1024 + 1) }), /1 MB/);
+  assert.throws(() => normalizePaste({
+    title: "Valid title", content: "x".repeat(1024 * 1024 + 1)
+  }), /1 MB/);
 });
 
 test("normalizes a LeetCode solution payload", () => {
