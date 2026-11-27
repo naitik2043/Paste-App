@@ -1,7 +1,8 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { Code2, FileCode2, House, LogOut, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useSession, LEETMETRIC_URL } from "../context/SessionContext";
+import { useSession } from "../context/SessionContext";
+import { LEETMETRIC_URL } from "../constants";
 
 export default function AppShell() {
   const { user, logout } = useSession();
