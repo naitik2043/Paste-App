@@ -22,20 +22,20 @@ Paste Vault captures LeetCode solutions, reusable code patterns and debugging no
 
 ## Integration architecture
 
-LeetMetric validates the user's active session and issues a short-lived, one-time launch ticket. Paste Vault consumes that ticket through its API, verifies the shared signing secret and creates a separate HttpOnly Paste Vault session. The token is passed in the URL fragment so it is not sent in the initial HTTP request.
+LeetMetric validates the user's active session and generates a random 256-bit, 90-second one-time launch ticket. Only the ticket's SHA-256 hash is stored in MongoDB. Paste Vault atomically consumes that hash, checks the user's current token version and creates a separate HttpOnly session signed with Paste Vault's own JWT secret. The ticket is delivered in the URL fragment, not the initial HTTP request.
 
-Both Vercel projects use the same MongoDB database and JWT signing secret. LeetMetric users and account deletion remain owned by LeetMetric; Paste Vault stores snippets in its own code_pastes collection linked by user ID.
+Both Vercel projects use the same MongoDB database, but each keeps its own independent JWT signing secret. LeetMetric users and account deletion remain owned by LeetMetric; Paste Vault stores snippets in its own code_pastes collection linked by user ID.
 
 ## Environment variables
 
 On Paste-App (Paste Vault), set:
 - MONGODB_URI — same database used by LeetMetric.
-- JWT_SECRET — exactly the same signing secret as LeetMetric (minimum 32 characters).
+- JWT_SECRET — Paste Vault's own random session-signing secret (minimum 32 characters); it must be different from LeetMetric's secret.
 
 On LeetMetric, set:
 - PASTE_APP_URL — https://paste-app-wine.vercel.app
 - MONGODB_URI — same database used by Paste Vault.
-- JWT_SECRET — same signing secret as Paste Vault.
+- JWT_SECRET — LeetMetric's own session-signing secret (minimum 32 characters); do not share it with Paste Vault.
 
 Never commit .env files, connection strings or secrets. Configure them in Vercel Project Settings → Environment Variables, then redeploy both projects.
 
