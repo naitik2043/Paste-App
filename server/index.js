@@ -311,7 +311,11 @@ async function pasteItem(req, res, id, action) {
   try {
     const body = bodyOf(req);
     const data = normalizePaste(body, paste);
-    const changed = Object.keys(data).some((key) =>
+    const revisionFields = [
+      "title", "content", "language", "category", "problemTitle", "problemUrl",
+      "difficulty", "topic", "approach", "timeComplexity", "spaceComplexity", "keyTakeaway", "tags"
+    ];
+    const changed = revisionFields.some((key) =>
       JSON.stringify(data[key]) !== JSON.stringify(paste[key] ?? (key === "tags" ? [] : ""))
     );
     if (changed) addHistoryRevision(paste);
