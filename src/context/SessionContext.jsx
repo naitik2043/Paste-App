@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 const SessionContext = createContext(null);
-export const LEETMETRIC_URL = "https://leetmetric-sooty.vercel.app";
 
 export function SessionProvider({ children }) {
   const [user, setUser] = useState(null);
