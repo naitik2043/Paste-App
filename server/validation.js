@@ -77,4 +77,5 @@ export function normalizePaste(input, current) {
     throw invalid("Complexity notes must be 80 characters or fewer.");
   }
   if (result.keyTakeaway.length > 1000) throw invalid("Key takeaway must be 1,000 characters or fewer.");
+  return result;
 }
