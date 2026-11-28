@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, LoaderCircle, XCircle } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
 import { useSession } from "../context/useSession";
+import PageTitle from "../components/PageTitle";
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -46,6 +47,7 @@ export default function VerifyEmail() {
   }, [navigate, refresh, token]);
 
   return (
+      <PageTitle title="Verify your email" />
     <AuthLayout eyebrow="EMAIL VERIFICATION">
       {status === "checking" && <div className="auth-status-icon"><LoaderCircle className="auth-spinner" size={26} /></div>}
       {status === "success" && <div className="auth-success-icon"><CheckCircle2 size={25} /></div>}
