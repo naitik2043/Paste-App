@@ -85,7 +85,7 @@ The language catalog is shared between the create, edit, filter, and comparison 
 
 | Group | Available choices |
 | --- | --- |
-| General-purpose | C, C++, C#, Go, Java, JavaScript, Kotlin, Lua, Perl, PHP, Python, R, Ruby, Rust, Scala, Swift, TypeScript |
+| General-purpose | C, C++, C#, Dart, Go, Java, JavaScript, Kotlin, Lua, Perl, PHP, Python, R, Ruby, Rust, Scala, Swift, TypeScript |
 | Web and data | CSS, GraphQL, HTML, JSON, SQL |
 | Markup, shell and configuration | Bash, Dockerfile, Markdown, PowerShell, XML, YAML |
 | Additional editor modes | React JSX, React TSX, Plain text |
