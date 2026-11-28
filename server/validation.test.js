@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeTags, normalizeProblemUrl, normalizePaste, normalizeShareExpiry, normalizeFolder, validateImportBatch } from "./validation.js";
+import { normalizeTags, normalizeProblemUrl, normalizePaste, normalizeShareExpiry, normalizeShareViewLimit, normalizeFolder, validateImportBatch } from "./validation.js";
 
 test("normalizes tags, removes duplicates and limits the collection", () => {
   assert.deepEqual(normalizeTags([" DP ", "dp", "Graphs", "", "arrays"]), ["dp", "graphs", "arrays"]);
@@ -67,6 +67,15 @@ test("normalizes supported share link expiration policies", () => {
   assert.equal(normalizeShareExpiry("30d", now).getTime(), now + 30 * 24 * 60 * 60 * 1000);
   assert.equal(normalizeShareExpiry("never", now), null);
   assert.throws(() => normalizeShareExpiry("forever-ish", now), /expiration/);
+});
+
+test("accepts only documented finite share view limits or unlimited access", () => {
+  for (const limit of [0, 1, 5, 10, 25, 100]) {
+    assert.equal(normalizeShareViewLimit(String(limit)), limit);
+  }
+  assert.throws(() => normalizeShareViewLimit(-1), /supported share view limit/);
+  assert.throws(() => normalizeShareViewLimit(2), /supported share view limit/);
+  assert.throws(() => normalizeShareViewLimit("unlimited"), /supported share view limit/);
 });
 
 
