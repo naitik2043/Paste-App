@@ -32,6 +32,7 @@ export default function ViewPaste() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [shareDuration, setShareDuration] = useState("7d");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -122,15 +123,24 @@ export default function ViewPaste() {
 
   async function share() {
     try {
-      const next = paste.visibility === "unlisted" ? "private" : "unlisted";
-      const updated = await update({ visibility: next });
-      if (next === "unlisted") {
+      const wasAlreadyShared = paste.visibility === "unlisted";
+      const updated = await update({ visibility: "unlisted", shareDuration });
+      if (!wasAlreadyShared) {
         const url = window.location.origin + "/share/" + updated.shareId;
         await navigator.clipboard.writeText(url);
         toast.success("Unlisted share link copied.");
       } else {
-        toast.success("Sharing disabled. This snippet is private again.");
+        toast.success("Share link expiration updated.");
       }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  }
+
+  async function disableShare() {
+    try {
+      await update({ visibility: "private" });
+      toast.success("Sharing disabled. This snippet is private again.");
     } catch (error) {
       toast.error(error.message);
     }
@@ -179,8 +189,29 @@ export default function ViewPaste() {
           <button type="button" onClick={() => update({ isPinned: !paste.isPinned }).then(() => toast.success("Pin updated.")).catch((error) => toast.error(error.message))}>
             <Pin size={15} /> {paste.isPinned ? "Unpin" : "Pin"}
           </button>
-          <button type="button" onClick={share}><Share2 size={15} /> {paste.visibility === "unlisted" ? "Disable link" : "Create share link"}</button>
+          
           <button className="danger-action" type="button" onClick={remove}><Trash2 size={15} /> Delete</button>
+        </div>
+      </section>
+
+      <section className="share-settings">
+        <div className="share-settings-copy">
+          <p className="eyebrow">CONTROLLED SHARING</p>
+          <h2>Unlisted share link</h2>
+          <p>{paste.visibility === "unlisted" ? "Your snippet is accessible to anyone with its link. Update its expiry or disable the link at any time." : "Create a read-only link when you need to share this snippet. It stays private until you enable sharing."}</p>
+          {paste.visibility === "unlisted" && <small>{paste.shareExpiresAt ? "Current expiry: " + new Date(paste.shareExpiresAt).toLocaleString() : "Current link has no expiry. Set one below to limit access."}</small>}
+        </div>
+        <div className="share-settings-actions">
+          <label htmlFor="share-duration">LINK LIFETIME
+            <select id="share-duration" value={shareDuration} onChange={(event) => setShareDuration(event.target.value)}>
+              <option value="1d">1 day</option>
+              <option value="7d">7 days</option>
+              <option value="30d">30 days</option>
+              <option value="never">No expiration</option>
+            </select>
+          </label>
+          <button className="primary-button" type="button" onClick={share}><Share2 size={15} /> {paste.visibility === "unlisted" ? "Update expiry" : "Create share link"}</button>
+          {paste.visibility === "unlisted" && <button className="secondary-button" type="button" onClick={disableShare}>Disable link</button>}
         </div>
       </section>
 
