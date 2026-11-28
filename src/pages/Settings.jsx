@@ -4,12 +4,16 @@ import { ArrowUpRight, CheckCircle2, KeyRound, LockKeyhole, LogOut, Moon, Shield
 import toast from "react-hot-toast";
 import PageTitle from "../components/PageTitle";
 import { useSession } from "../context/useSession";
+import { LEETMETRIC_URL } from "../constants";
 
 export default function Settings() {
   const { user, logout } = useSession();
   const navigate = useNavigate();
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [savingPassword, setSavingPassword] = useState(false);
+  const [linkForm, setLinkForm] = useState({ password: "", confirmPassword: "" });
+  const [linking, setLinking] = useState(false);
+  const [linkResult, setLinkResult] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem("paste-theme") || (document.documentElement.classList.contains("dark") ? "dark" : "light"));
   const hasEmailSignIn = (user?.authProviders || []).includes("email");
   const hasLeetMetric = (user?.authProviders || []).includes("leetmetric");
@@ -52,6 +56,60 @@ export default function Settings() {
       toast.error(error.message || "Unable to update your password.");
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function linkStandaloneSignIn(event) {
+    event.preventDefault();
+    if (linkForm.password.length < 12) return toast.error("Use a password with at least 12 characters.");
+    if (linkForm.password.length > 128) return toast.error("Your password must be 128 characters or fewer.");
+    if (linkForm.password !== linkForm.confirmPassword) return toast.error("The passwords do not match.");
+
+    setLinking(true);
+    setLinkResult(null);
+    try {
+      const response = await fetch("/api/auth/link-email", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ password: linkForm.password })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok && !result.pendingVerification) throw new Error(result.error || "Unable to link standalone sign-in.");
+      setLinkResult({
+        message: result.message || result.error || "Standalone sign-in is waiting for email verification.",
+        verificationUrl: result.verificationUrl || "",
+        pending: true
+      });
+      setLinkForm({ password: "", confirmPassword: "" });
+      toast.success("Standalone sign-in setup started.");
+    } catch (error) {
+      setLinkResult({ message: error.message || "Unable to link standalone sign-in.", pending: /already pending/i.test(error.message || "") });
+      toast.error(error.message || "Unable to link standalone sign-in.");
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function resendLinkVerification() {
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ email: user?.email })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Unable to resend verification email.");
+      setLinkResult({
+        message: result.message || "If an unverified account exists, a new verification email will be sent.",
+        verificationUrl: result.verificationUrl || "",
+        pending: true
+      });
+      toast.success("Verification request processed.");
+    } catch (error) {
+      setLinkResult({ message: error.message || "Unable to resend verification email.", pending: true });
+      toast.error(error.message || "Unable to resend verification email.");
     }
   }
 
@@ -105,7 +163,18 @@ export default function Settings() {
               <button className="primary-button" type="submit" disabled={savingPassword}>{savingPassword ? "Updating…" : "Update password"} <ArrowUpRight size={14} /></button>
             </form>
           ) : (
-            <div className="settings-provider-help"><LockKeyhole size={19} /><div><strong>LeetMetric-managed sign-in</strong><p>This account currently uses LeetMetric SSO. To add standalone sign-in, create a Paste Vault account with the same email address, then verify that email. The existing user record is linked only after email verification; accounts with different email addresses are not merged automatically.</p></div></div>
+            <>
+              <div className="settings-provider-help"><LockKeyhole size={19} /><div><strong>Add a standalone sign-in method</strong><p>We'll use your current LeetMetric account email ({user?.email || "no email available"}). Set a password and verify that email address. This adds another sign-in method to this same account; it does not create a second workspace.</p></div></div>
+              <form className="settings-password-form settings-link-form" onSubmit={linkStandaloneSignIn}>
+                <label><span>New standalone password</span><input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={linkForm.password} onChange={(event) => setLinkForm((current) => ({ ...current, password: event.target.value }))} required /></label>
+                <label><span>Confirm password</span><input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={linkForm.confirmPassword} onChange={(event) => setLinkForm((current) => ({ ...current, confirmPassword: event.target.value }))} required /></label>
+                <p className="settings-field-hint">After setup, a verification email is sent to your current account email. Passwords must be 12–128 characters.</p>
+                <button className="primary-button" type="submit" disabled={linking}>{linking ? "Sending verification…" : "Link standalone sign-in"} <ArrowUpRight size={14} /></button>
+                {linkResult && <div className="auth-message settings-link-result" role="status">{linkResult.message}{linkResult.verificationUrl && <a className="auth-dev-link" href={linkResult.verificationUrl}>Open development verification link <ArrowUpRight size={13} /></a>}</div>}
+                <button className="auth-text-button" type="button" onClick={resendLinkVerification}>Resend verification email</button>
+              </form>
+              {!hasLeetMetric && <a className="settings-connect-link" href={LEETMETRIC_URL + "/dashboard.html"} target="_blank" rel="noreferrer">Open LeetMetric <ArrowUpRight size={14} /></a>}
+            </>
           )}
         </section>
 
