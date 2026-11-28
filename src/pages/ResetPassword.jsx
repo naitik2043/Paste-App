@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
+import PageTitle from "../components/PageTitle";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -52,6 +53,7 @@ export default function ResetPassword() {
   }
 
   return (
+      <PageTitle title="Reset password" />
     <AuthLayout eyebrow="SET A NEW PASSWORD">
       {success ? (
         <>
