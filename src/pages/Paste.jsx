@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, X, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import PasteCard from "../components/PasteCard";
 import PageTitle from "../components/PageTitle";
+import { Link, useSearchParams } from "react-router-dom";
 
 export default function Paste() {
   const [items, setItems] = useState([]);
-  const [query, setQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("search") || searchParams.get("q") || "");
   const [language, setLanguage] = useState("");
   const [category, setCategory] = useState("");
   const [pinned, setPinned] = useState(false);
@@ -39,9 +41,9 @@ export default function Paste() {
   return (
     <>
       <PageTitle title="Snippet library" />
-      <section className="library-heading"><div><p className="eyebrow">YOUR PRIVATE KNOWLEDGE BASE</p><h1>Snippet library</h1><p>Search by title, code, problem, tag or topic.</p></div></section>
+      <section className="library-heading"><div><p className="eyebrow">YOUR PRIVATE KNOWLEDGE BASE</p><h1>Snippet library</h1><p>Search by title, code, problem, tag or topic.</p></div><Link className="primary-button" to="/?new=1"><Plus size={15} /> New snippet</Link></section>
       <section className="filter-panel">
-        <div className="search-box"><Search size={17} /><input aria-label="Search snippets" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title, code, topic or tag…" /></div>
+        <div className="search-box"><Search size={17} /><input aria-label="Search snippets" value={query} onChange={(e) => { setQuery(e.target.value); const next = new URLSearchParams(searchParams); if (e.target.value.trim()) next.set("search", e.target.value); else next.delete("search"); setSearchParams(next, { replace: true }); }} placeholder="Search title, code, topic or tag…" /></div>
         <div className="filter-controls"><SlidersHorizontal size={16} /><select aria-label="Filter by language" value={language} onChange={(e) => setLanguage(e.target.value)}><option value="">All languages</option>{["cpp","python","javascript","typescript","java","go","rust","sql","html","css","json","bash","text"].map((v) => <option key={v}>{v}</option>)}</select><select aria-label="Filter by category" value={category} onChange={(e) => setCategory(e.target.value)}><option value="">All types</option><option value="solution">Solutions</option><option value="snippet">Snippets</option><option value="template">Templates</option><option value="notes">Notes</option></select><label className="check-filter"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Pinned only</label></div>
       </section>
       <div className="results-caption">{loading ? "Searching your vault…" : items.length + " snippets found"}</div>
