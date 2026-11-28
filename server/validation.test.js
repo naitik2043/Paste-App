@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeTags, normalizeProblemUrl, normalizePaste, normalizeShareExpiry, normalizeShareViewLimit, normalizeFolder, validateImportBatch } from "./validation.js";
+import { normalizeTags, normalizeProblemUrl, normalizePaste, normalizeShareExpiry, normalizeShareViewLimit, shareViewLimitReached, normalizeFolder, validateImportBatch } from "./validation.js";
 
 test("normalizes tags, removes duplicates and limits the collection", () => {
   assert.deepEqual(normalizeTags([" DP ", "dp", "Graphs", "", "arrays"]), ["dp", "graphs", "arrays"]);
@@ -76,6 +76,17 @@ test("accepts only documented finite share view limits or unlimited access", () 
   assert.throws(() => normalizeShareViewLimit(-1), /supported share view limit/);
   assert.throws(() => normalizeShareViewLimit(2), /supported share view limit/);
   assert.throws(() => normalizeShareViewLimit("unlimited"), /supported share view limit/);
+  assert.throws(() => normalizeShareViewLimit(null), /supported share view limit/);
+  assert.throws(() => normalizeShareViewLimit(true), /supported share view limit/);
+  assert.throws(() => normalizeShareViewLimit("5.0"), /supported share view limit/);
+});
+
+test("blocks access at the configured view cap but preserves unlimited links", () => {
+  assert.equal(shareViewLimitReached(0, 5000), false);
+  assert.equal(shareViewLimitReached(5, 0), false);
+  assert.equal(shareViewLimitReached(5, 4), false);
+  assert.equal(shareViewLimitReached(5, 5), true);
+  assert.equal(shareViewLimitReached(1, 1), true);
 });
 
 
