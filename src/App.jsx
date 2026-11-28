@@ -7,6 +7,7 @@ import Paste from "./pages/Paste";
 import ViewPaste from "./pages/ViewPaste";
 import SharedPaste from "./pages/SharedPaste";
 import LaunchGate from "./pages/LaunchGate";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 function LoadingScreen() {
@@ -24,7 +25,8 @@ const router = createBrowserRouter([
   { element: <SessionGate />, children: [
     { path: "/", element: <Home /> },
     { path: "/pastes", element: <Paste /> },
-    { path: "/pastes/:id", element: <ViewPaste /> }
+    { path: "/pastes/:id", element: <ViewPaste /> },
+    { path: "/profile", element: <Profile /> }
   ]},
   { path: "/share/:shareId", element: <main className="page-container"><SharedPaste /></main> },
   { path: "*", element: <NotFound /> }
