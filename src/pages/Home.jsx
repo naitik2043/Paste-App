@@ -7,6 +7,7 @@ import PageTitle from "../components/PageTitle";
 import SecretWarningNotice from "../components/SecretWarningNotice";
 import { detectPotentialSecrets } from "../utils/secretDetection.js";
 import { useSession } from "../context/useSession";
+import { LANGUAGE_OPTIONS } from "../data/languages.js";
 
 const emptyForm = {
   title: "", content: "", language: "cpp", category: "solution", problemTitle: "",
@@ -95,7 +96,7 @@ export default function Home() {
             <label htmlFor="snippet-title">TITLE</label>
             <input id="snippet-title" value={form.title} maxLength={100} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Binary search on answer" required />
             <div className="form-row">
-              <div><label htmlFor="snippet-language">LANGUAGE</label><select id="snippet-language" value={form.language} onChange={(e) => update("language", e.target.value)}>{["cpp","python","javascript","typescript","java","go","rust","sql","html","css","json","bash","text"].map((v) => <option key={v} value={v}>{v}</option>)}</select></div>
+              <div><label htmlFor="snippet-language">LANGUAGE</label><select id="snippet-language" value={form.language} onChange={(e) => update("language", e.target.value)}>{LANGUAGE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}</select></div>
               <div><label htmlFor="snippet-category">TYPE</label><select id="snippet-category" value={form.category} onChange={(e) => update("category", e.target.value)}><option value="solution">LeetCode solution</option><option value="snippet">Code snippet</option><option value="template">Template</option><option value="notes">Notes</option></select></div>
             </div>
             <label htmlFor="snippet-folder">COLLECTION</label>
