@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import AuthLayout from "../components/AuthLayout";
 import { useSession } from "../context/useSession";
 import { LEETMETRIC_URL } from "../constants";
+import PageTitle from "../components/PageTitle";
 
 export default function Login() {
   const { refresh } = useSession();
@@ -70,6 +71,7 @@ export default function Login() {
   }
 
   return (
+      <PageTitle title="Sign in" />
     <AuthLayout eyebrow="WELCOME BACK">
       <h1 className="auth-title">Sign in to your vault.</h1>
       <p className="auth-description">Pick up where you left off. Your saved code and notes are right where you left them.</p>
