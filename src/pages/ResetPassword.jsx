@@ -65,7 +65,7 @@ export default function ResetPassword() {
       ) : (
         <>
           <h1 className="auth-title">Choose a new password.</h1>
-          <p className="auth-description">Use a strong password you don't use on another service.</p>
+          <p className="auth-description">Use a strong password you don&apos;t use on another service.</p>
           <form className="auth-form" onSubmit={submit}>
             <label className="auth-field"><span>New password</span><span className="auth-input-wrap"><KeyRound size={17} /><input type={showPassword ? "text" : "password"} name="new-password" autoComplete="new-password" placeholder="At least 12 characters" value={password} onChange={(event) => setPassword(event.target.value)} minLength={12} maxLength={128} required /><button className="auth-input-action" type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></span></label>
             <label className="auth-field"><span>Confirm new password</span><span className="auth-input-wrap"><KeyRound size={17} /><input type="password" name="confirm-password" autoComplete="new-password" placeholder="Enter it again" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={12} maxLength={128} required /></span></label>
