@@ -4,8 +4,8 @@ import PageTitle from "../components/PageTitle";
 
 export default function About() {
   return (
+      <div className="public-content-page">
       <PageTitle title="About Paste Vault" description="Learn how Paste Vault helps developers preserve code, patterns and the reasoning behind their solutions." noindex={false} />
-    <div className="public-content-page">
       <section className="public-page-hero"><div className="landing-pill"><Sparkles size={14} /> ABOUT PASTE VAULT</div><h1>A home for the code<br /><span>you want to remember.</span></h1><p>Paste Vault is a developer workspace for keeping solutions, reusable snippets and the reasoning behind them in one place.</p></section>
       <div className="about-card-grid">
         <article><span><Code2 size={20} /></span><h2>Made for learning through building</h2><p>Code is only part of a useful reference. Save the approach, complexity, edge cases and notes alongside your implementation.</p></article>
