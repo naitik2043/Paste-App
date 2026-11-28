@@ -31,8 +31,6 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Apply non-breaking dependency security fixes
-        run: npm audit fix --ignore-scripts --no-fund
       - name: Export normalized lockfile for repository maintenance
         uses: actions/upload-artifact@v4
         with:
