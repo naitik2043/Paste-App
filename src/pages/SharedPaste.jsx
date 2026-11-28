@@ -43,7 +43,10 @@ export default function SharedPaste() {
         body: JSON.stringify({ password })
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Unable to unlock this snippet.");
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 400) setRequiresPassword(false);
+        throw new Error(data.error || "Unable to unlock this snippet.");
+      }
       setPaste(data.paste);
       setRequiresPassword(false);
       setPassword("");
