@@ -94,3 +94,39 @@ export function normalizeShareExpiry(duration = "7d", now = Date.now()) {
   if (!lifetime) throw invalid("Choose a valid share link expiration.");
   return new Date(now + lifetime);
 }
+
+
+export const FOLDER_COLORS = new Set(["blue", "violet", "green", "amber", "rose", "slate"]);
+
+export function normalizeFolder(input) {
+  const source = input || {};
+  const name = String(source.name || "").trim().replace(/\s+/g, " ");
+  const color = String(source.color || "blue").toLowerCase();
+  if (name.length < 2 || name.length > 40) throw invalid("Folder names must be between 2 and 40 characters.");
+  if (!FOLDER_COLORS.has(color)) throw invalid("Choose a supported folder color.");
+  return { name, nameKey: name.toLocaleLowerCase("en-US"), color };
+}
+
+export function validateImportBatch(input) {
+  const source = input || {};
+  if (source.format !== "paste-vault-export" || Number(source.version) !== 1) {
+    throw invalid("This is not a supported Paste Vault export file.");
+  }
+  if (!Array.isArray(source.snippets) || source.snippets.length < 1 || source.snippets.length > 10) {
+    throw invalid("Import batches must contain between 1 and 10 snippets.");
+  }
+  return source.snippets.map((snippet) => {
+    const normalized = normalizePaste({
+      ...snippet,
+      visibility: "private",
+      tags: snippet.tags || []
+    });
+    const folderName = String(snippet.folderName || "").trim().replace(/\s+/g, " ");
+    if (folderName.length > 40) throw invalid("Imported folder names must be 40 characters or fewer.");
+    return {
+      ...normalized,
+      folderName,
+      isPinned: Boolean(snippet.isPinned)
+    };
+  });
+}
