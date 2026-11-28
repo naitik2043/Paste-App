@@ -4,6 +4,8 @@ import { ArrowRight, Braces, FileCode2, LockKeyhole, Plus, Sparkles, Tag } from 
 import toast from "react-hot-toast";
 import PasteCard from "../components/PasteCard";
 import PageTitle from "../components/PageTitle";
+import SecretWarningNotice from "../components/SecretWarningNotice";
+import { detectPotentialSecrets } from "../utils/secretDetection.js";
 
 const emptyForm = {
   title: "", content: "", language: "cpp", category: "solution", problemTitle: "",
@@ -15,6 +17,8 @@ export default function Home() {
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [secretAcknowledged, setSecretAcknowledged] = useState(false);
+  const secretWarnings = detectPotentialSecrets(form.content);
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
 
@@ -32,11 +36,15 @@ export default function Home() {
     if (searchParams.get("new") === "1") document.getElementById("snippet-title")?.focus();
   }, [searchParams]);
 
-  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const update = (key, value) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    if (key === "content") setSecretAcknowledged(false);
+  };
 
   async function savePaste(event) {
     event.preventDefault();
     if (!form.title.trim() || !form.content.trim()) return toast.error("Add a title and some code first.");
+    if (secretWarnings.length && !secretAcknowledged) return toast.error("Review the potential sensitive information warning before saving.");
     setSaving(true);
     try {
       const payload = { ...form, tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean) };
@@ -49,6 +57,7 @@ export default function Home() {
       if (!response.ok) throw new Error(result.error || "Could not save this snippet.");
       toast.success("Snippet saved to your private vault.");
       setForm(emptyForm);
+      setSecretAcknowledged(false);
       setRecent((items) => [result.paste, ...items].slice(0, 4));
       const summary = await fetch("/api/stats", { credentials: "same-origin" }).then((r) => r.json());
       setStats(summary.stats || null);
@@ -86,6 +95,7 @@ export default function Home() {
             </div>
             <label htmlFor="snippet-content">CODE / NOTES <span className="label-muted">UP TO 1 MB</span></label>
             <textarea id="snippet-content" className="code-input" value={form.content} onChange={(e) => update("content", e.target.value)} placeholder={"// Your accepted or reusable implementation…"} rows={11} required />
+            <SecretWarningNotice warnings={secretWarnings} acknowledged={secretAcknowledged} onAcknowledge={setSecretAcknowledged} />
             <label htmlFor="snippet-approach">APPROACH / INTUITION <span className="label-muted">UP TO 2,000 CHARACTERS</span></label>
             <textarea id="snippet-approach" value={form.approach} maxLength={2000} onChange={(e) => update("approach", e.target.value)} placeholder="Why does this approach work? Describe the key observation and algorithm." rows={4} />
             <div className="form-row">
