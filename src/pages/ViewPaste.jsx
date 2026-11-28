@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clipboard, ExternalLink, History, Link2, Pencil, Pin, RotateCcw, Share2, Trash2, Save, X } from "lucide-react";
+import { ArrowLeft, Clipboard, Download, ExternalLink, History, Link2, Pencil, Pin, RotateCcw, Share2, Trash2, Save, X } from "lucide-react";
 import toast from "react-hot-toast";
 import CodeBlock from "../components/CodeBlock";
 import PageTitle from "../components/PageTitle";
 import SecretWarningNotice from "../components/SecretWarningNotice";
 import { detectPotentialSecrets } from "../utils/secretDetection.js";
+import { downloadSnippet } from "../utils/downloadSnippet.js";
 
 function toEditForm(paste) {
   return {
@@ -57,6 +58,15 @@ export default function ViewPaste() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  function downloadCode() {
+    try {
+      downloadSnippet(paste);
+      toast.success("Code download started.");
+    } catch (error) {
+      toast.error(error.message || "Unable to download this snippet.");
+    }
+  }
 
   async function copyCode() {
     try {
@@ -201,6 +211,7 @@ export default function ViewPaste() {
         </div>
         <div className="detail-actions">
           <button type="button" onClick={copyCode}><Clipboard size={15} /> Copy code</button>
+          <button type="button" onClick={downloadCode}><Download size={15} /> Download</button>
           <button type="button" onClick={beginEditing}><Pencil size={15} /> Edit</button>
           <button type="button" onClick={() => update({ isPinned: !paste.isPinned }).then(() => toast.success("Pin updated.")).catch((error) => toast.error(error.message))}>
             <Pin size={15} /> {paste.isPinned ? "Unpin" : "Pin"}
