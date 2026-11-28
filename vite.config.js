@@ -10,7 +10,7 @@ export default defineConfig({
       manifest: {
         name: "Paste Vault",
         short_name: "Paste Vault",
-        description: "A private LeetMetric-connected developer snippet workspace.",
+        description: "An independent developer workspace for code snippets, programming solutions and technical notes with optional LeetMetric sign-in.",
         start_url: "/",
         scope: "/",
         display: "standalone",

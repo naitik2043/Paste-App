@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
+import { createStandaloneAuthHandlers } from "./standalone-auth.js";
 import * as validation from "./validation.js";
 import { createRateLimiter, isSameOrigin } from "./security.js";
 import { createSharePassword, verifySharePassword } from "./share-security.js";
@@ -137,10 +138,14 @@ async function requireUser(req) {
   try { payload = jwt.verify(token, secret(), { audience: "paste-app-session", issuer: "paste-app" }); }
   catch { return null; }
   if (!payload || !mongoose.isValidObjectId(payload.sub)) return null;
-  const user = await User.findById(payload.sub).select("_id name email tokenVersion").lean();
+  const user = await User.findById(payload.sub).select("_id name email tokenVersion authProviders pasteProfile").lean();
   if (!user || Number(user.tokenVersion || 0) !== Number(payload.ver || 0)) return null;
   return user;
 }
+
+const standaloneAuth = createStandaloneAuthHandlers({
+  User, requireUser, send, bodyOf, secret, setCookie, clearCookie
+});
 function makeError(res, error, fallback) {
   const status = Number(error.status) || (error.code === 11000 ? 409 : error.name === "ValidationError" ? 400 : 500);
   const message = status >= 500
@@ -255,13 +260,17 @@ async function authExchange(req, res) {
   }).lean();
   if (!ticket) return send(res, 401, { error: "This launch link expired or was already used. Reopen Paste Vault from LeetMetric." });
 
-  const user = await User.findById(ticket.userId).select("_id name email tokenVersion").lean();
+  const user = await User.findById(ticket.userId).select("_id name email tokenVersion authProviders pasteProfile").lean();
   if (!user || Number(user.tokenVersion || 0) !== Number(ticket.tokenVersion || 0)) {
     return send(res, 401, { error: "Your LeetMetric account is no longer active. Sign in again." });
   }
+  await User.updateOne({ _id: user._id }, { $addToSet: { authProviders: "leetmetric" } });
+  const refreshedUser = await User.findById(user._id)
+    .select("_id name email tokenVersion authProviders pasteProfile").lean();
+  const sessionUser = refreshedUser || user;
   const sessionToken = jwt.sign({
-    sub: String(user._id),
-    ver: Number(user.tokenVersion || 0),
+    sub: String(sessionUser._id),
+    ver: Number(sessionUser.tokenVersion || 0),
     purpose: "paste-app-session"
   }, secret(), {
     expiresIn: "7d",
@@ -269,13 +278,13 @@ async function authExchange(req, res) {
     issuer: "paste-app"
   });
   setCookie(res, sessionToken);
-  return send(res, 200, { user: { id: String(user._id), name: user.name, email: user.email } });
+  return send(res, 200, { user: await standaloneAuth.serializeUser(sessionUser) });
 }
 async function authMe(req, res) {
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
   const user = await requireUser(req);
   if (!user) { clearCookie(res); return send(res, 200, { user: null }); }
-  return send(res, 200, { user: { id: String(user._id), name: user.name, email: user.email } });
+  return send(res, 200, { user: await standaloneAuth.serializeUser(user) });
 }
 async function authLogout(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
@@ -284,7 +293,7 @@ async function authLogout(req, res) {
 }
 async function pasteCollection(req, res) {
   const user = await requireUser(req);
-  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
   if (req.method === "GET") {
     const q = String(req.query?.q || "").trim().slice(0, 80);
     const language = String(req.query?.language || "");
@@ -351,7 +360,7 @@ async function pasteCollection(req, res) {
 }
 async function pasteItem(req, res, id, action) {
   const user = await requireUser(req);
-  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
   if (!mongoose.isValidObjectId(id)) return send(res, 400, { error: "Invalid paste identifier." });
   const paste = await CodePaste.findOne({ _id: id, userId: user._id });
   if (!paste) return send(res, 404, { error: "Paste not found." });
@@ -496,7 +505,7 @@ async function sharePaste(req, res, shareId) {
 }
 async function folderCollection(req, res) {
   const user = await requireUser(req);
-  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
   if (req.method === "GET") {
     const [folders, counts] = await Promise.all([
       Folder.find({ userId: user._id }).sort({ nameKey: 1 }).lean(),
@@ -525,7 +534,7 @@ async function folderCollection(req, res) {
 
 async function folderItem(req, res, id) {
   const user = await requireUser(req);
-  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
   if (!mongoose.isValidObjectId(id)) return send(res, 400, { error: "Invalid folder identifier." });
   const folder = await Folder.findOne({ _id: id, userId: user._id });
   if (!folder) return send(res, 404, { error: "Folder not found." });
@@ -552,7 +561,7 @@ async function folderItem(req, res, id) {
 async function exportVault(req, res) {
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
   const user = await requireUser(req);
-  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
   const page = Math.max(1, Math.min(1000, Number.parseInt(req.query?.page || "1", 10) || 1));
   const limit = Math.max(1, Math.min(10, Number.parseInt(req.query?.limit || "3", 10) || 3));
   const [folders, total, items] = await Promise.all([
@@ -584,7 +593,7 @@ async function exportVault(req, res) {
 async function importVault(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
   const user = await requireUser(req);
-  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
   try {
     const importBody = bodyOf(req);
     if (Buffer.byteLength(JSON.stringify(importBody), "utf8") > 3.5 * 1024 * 1024) {
@@ -631,7 +640,7 @@ async function importVault(req, res) {
 async function stats(req, res) {
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
   const user = await requireUser(req);
-  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
   const [total, pinned, unlisted, bytes, languages, recent] = await Promise.all([
     CodePaste.countDocuments({ userId: user._id }),
     CodePaste.countDocuments({ userId: user._id, isPinned: true }),
@@ -655,10 +664,16 @@ export default async function handler(req, res) {
     const isTicketExchange = parts.join("/") === "auth/exchange";
     const isSharePasswordAttempt = parts[0] === "share" && req.method === "POST";
     const isImportRequest = parts.join("/") === "import";
+    const authAction = parts[0] === "auth" ? parts[1] : "";
+    const authLimits = {
+      register: 5, "link-email": 3, login: 10, verify: 10,
+      "resend-verification": 3, "forgot-password": 5, "reset-password": 5
+    };
+    const isStandaloneAuth = Object.prototype.hasOwnProperty.call(authLimits, authAction);
     const quota = rateLimit(req, {
-      key: isTicketExchange ? "ticket-exchange" : isSharePasswordAttempt ? "share-password" : isImportRequest ? "vault-import" : "vault-mutation",
-      limit: isTicketExchange || isSharePasswordAttempt ? 8 : isImportRequest ? 700 : 120,
-      windowMs: isTicketExchange || isSharePasswordAttempt || isImportRequest ? 15 * 60 * 1000 : 60 * 1000
+      key: isTicketExchange ? "ticket-exchange" : isStandaloneAuth ? "auth-" + authAction : isSharePasswordAttempt ? "share-password" : isImportRequest ? "vault-import" : "vault-mutation",
+      limit: isTicketExchange ? 8 : isStandaloneAuth ? authLimits[authAction] : isSharePasswordAttempt ? 8 : isImportRequest ? 700 : 120,
+      windowMs: isTicketExchange || isStandaloneAuth || isSharePasswordAttempt || isImportRequest ? 15 * 60 * 1000 : 60 * 1000
     });
     if (!quota.allowed) {
       res.setHeader("Retry-After", String(quota.retryAfterSeconds));
@@ -671,6 +686,15 @@ export default async function handler(req, res) {
     if (parts.join("/") === "auth/exchange") return authExchange(req, res);
     if (parts.join("/") === "auth/me") return authMe(req, res);
     if (parts.join("/") === "auth/logout") return authLogout(req, res);
+    if (parts.join("/") === "auth/register") return standaloneAuth.register(req, res);
+    if (parts.join("/") === "auth/link-email") return standaloneAuth.linkStandalone(req, res);
+    if (parts.join("/") === "auth/login") return standaloneAuth.login(req, res);
+    if (parts.join("/") === "auth/verify") return standaloneAuth.verifyEmail(req, res);
+    if (parts.join("/") === "auth/resend-verification") return standaloneAuth.resendVerification(req, res);
+    if (parts.join("/") === "auth/forgot-password") return standaloneAuth.forgotPassword(req, res);
+    if (parts.join("/") === "auth/reset-password") return standaloneAuth.resetPassword(req, res);
+    if (parts.join("/") === "auth/profile") return standaloneAuth.updateProfile(req, res);
+    if (parts.join("/") === "auth/password") return standaloneAuth.updatePassword(req, res);
     if (parts.join("/") === "pastes") return pasteCollection(req, res);
     if (parts.length === 2 && parts[0] === "pastes") return pasteItem(req, res, parts[1], "");
     if (parts.length === 3 && parts[0] === "pastes" && parts[2] === "restore") return pasteItem(req, res, parts[1], "restore");
