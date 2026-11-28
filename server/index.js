@@ -5,7 +5,7 @@ import * as validation from "./validation.js";
 import { createRateLimiter, isSameOrigin } from "./security.js";
 import { createSharePassword, verifySharePassword } from "./share-security.js";
 
-const { normalizePaste, normalizeShareExpiry, normalizeFolder, validateImportBatch, LANGUAGES } = validation;
+const { normalizePaste, normalizeShareExpiry, validateImportBatch, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
 const SESSION_COOKIE = "paste_session";
 const rateLimit = createRateLimiter();
