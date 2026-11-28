@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Braces, Camera, Check, Code2, ExternalLink, Github, Globe, Linkedin, LockKeyhole, MapPin, Save, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowUpRight, Braces, Camera, Code2, ExternalLink, Github, Globe, Linkedin, LockKeyhole, MapPin, Save, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import toast from "react-hot-toast";
 import PageTitle from "../components/PageTitle";
 import { useSession } from "../context/useSession";
