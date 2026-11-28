@@ -48,7 +48,7 @@ export default function ForgotPassword() {
       ) : (
         <>
           <h1 className="auth-title">Reset your password.</h1>
-          <p className="auth-description">Enter the email address associated with your Paste Vault account. We'll send a reset link when an eligible account exists.</p>
+          <p className="auth-description">Enter the email address associated with your Paste Vault account. We&apos;ll send a reset link when an eligible account exists.</p>
           <form className="auth-form" onSubmit={submit}>
             <label className="auth-field"><span>Email address</span><span className="auth-input-wrap"><Mail size={17} /><input type="email" name="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} required /></span></label>
             {error && <div className="auth-message error" role="alert">{error}</div>}
