@@ -71,23 +71,23 @@ function validatePassword(password) {
 
 function normalizeText(value, maxLength, label, required = false) {
   const normalized = String(value ?? "").trim();
-  if (required && !normalized) throw authError("`${label} is required.");
-  if (normalized.length > maxLength) throw authError("`${label} must be `${maxLength} characters or fewer.");
+  if (required && !normalized) throw authError(label + " is required.");
+  if (normalized.length > maxLength) throw authError(label + " must be " + maxLength + " characters or fewer.");
   return normalized;
 }
 
 function normalizeHttpsUrl(value, label) {
   const raw = normalizeText(value, 500, label);
   if (!raw) return "";
-  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://` + raw;
+  const candidate = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
   let parsed;
   try {
     parsed = new URL(candidate);
   } catch {
-    throw authError(`Enter a valid ` + label.toLowerCase() + ` URL.);
+    throw authError("Enter a valid " + label.toLowerCase() + " URL.");
   }
   if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
-    throw authError(`` + label + ` must be a valid HTTPS URL.);
+    throw authError(label + " must be a valid HTTPS URL.");
   }
   return parsed.toString().replace(/\/$/, "");
 }
@@ -164,7 +164,7 @@ function baseUrlForRequest(req) {
   return protocol + "://" + host;
 }
 
-async function sendTransactionalEmail({ req, to, subject, text, html }) {
+async function sendTransactionalEmail({ to, subject, text, html }) {
   const apiKey = String(process.env.RESEND_API_KEY || "").trim();
   const from = String(process.env.RESEND_FROM_EMAIL || "").trim();
 
