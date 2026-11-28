@@ -24,7 +24,7 @@ export default function SharedPaste() {
     <>
       <PageTitle title={paste.title} />
       <div className="detail-back"><Link to="/"><ArrowLeft size={15} /> Open Paste Vault</Link></div>
-      <section className="detail-header"><div><p className="eyebrow">SHARED SNIPPET · {paste.language.toUpperCase()}</p><h1>{paste.title}</h1><div className="detail-meta"><span>Shared by a LeetMetric user</span><span>{paste.viewCount} views</span></div></div><button type="button" onClick={() => navigator.clipboard.writeText(paste.content).then(() => toast.success("Copied."))}><Clipboard size={15} /> Copy code</button></section>
+      <section className="detail-header"><div><p className="eyebrow">SHARED SNIPPET · {paste.language.toUpperCase()}</p><h1>{paste.title}</h1><div className="detail-meta"><span>Shared by a LeetMetric user</span><span>{paste.viewCount} views</span>{paste.shareExpiresAt && <span>Expires {new Date(paste.shareExpiresAt).toLocaleString()}</span>}</div></div><button type="button" onClick={() => navigator.clipboard.writeText(paste.content).then(() => toast.success("Copied."))}><Clipboard size={15} /> Copy code</button></section>
       <section className="detail-main">
         <div className="code-toolbar"><span><i></i><i></i><i></i> <b>{paste.language}</b></span></div>
         <CodeBlock code={paste.content} language={paste.language} />
