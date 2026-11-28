@@ -216,8 +216,8 @@ export default function ViewPaste() {
           <h2>Unlisted share link</h2>
           <p>{paste.visibility === "unlisted" ? "Your snippet is accessible to anyone with its link. Update its expiry or disable the link at any time." : "Create a read-only link when you need to share this snippet. It stays private until you enable sharing."}</p>
           {paste.visibility === "unlisted" && <small>{paste.shareExpiresAt ? "Current expiry: " + new Date(paste.shareExpiresAt).toLocaleString() : "Current link has no expiry. Set one below to limit access."}</small>}
+          {paste.visibility !== "unlisted" && <SecretWarningNotice warnings={shareSecretWarnings} acknowledged={shareSecretAcknowledged} onAcknowledge={setShareSecretAcknowledged} />}
         </div>
-        {paste.visibility !== "unlisted" && <SecretWarningNotice warnings={shareSecretWarnings} acknowledged={shareSecretAcknowledged} onAcknowledge={setShareSecretAcknowledged} />}
         <div className="share-settings-actions">
           <label htmlFor="share-duration">LINK LIFETIME
             <select id="share-duration" value={shareDuration} onChange={(event) => setShareDuration(event.target.value)}>
