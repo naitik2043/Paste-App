@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "node --test",
     "preview": "vite preview",
-    "check": "npm run lint && npm test && npm run build"
+    "check:api": "node --check server/index.js && node --check server/routes.js && node --check api/auth/exchange.js && node --check api/auth/me.js && node --check api/auth/logout.js && node --check api/pastes.js && node --check 'api/pastes/[id].js' && node --check 'api/pastes/[id]/restore.js' && node --check api/stats.js && node --check 'api/share/[shareId].js'",
+    "check": "npm run lint && npm run check:api && npm test && npm run build"
   },
   "dependencies": {
     "highlight.js": "^11.11.1",
