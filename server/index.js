@@ -641,18 +641,68 @@ async function stats(req, res) {
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
   const user = await requireUser(req);
   if (!user) return send(res, 401, { error: "Sign in to Paste Vault to access your workspace." });
-  const [total, pinned, unlisted, bytes, languages, recent] = await Promise.all([
+
+  const now = new Date();
+  const activityStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const [total, pinned, unlisted, bytes, languages, recent, solutionCount, difficulties, topics, activity, languageValues, topicValues] = await Promise.all([
     CodePaste.countDocuments({ userId: user._id }),
     CodePaste.countDocuments({ userId: user._id, isPinned: true }),
     CodePaste.countDocuments({ userId: user._id, visibility: "unlisted", $or: [{ shareExpiresAt: null }, { shareExpiresAt: { $exists: false } }, { shareExpiresAt: { $gt: new Date() } }] }),
     CodePaste.aggregate([{ $match: { userId: user._id } }, { $group: { _id: null, total: { $sum: { $strLenBytes: "$content" } } } }]),
-    CodePaste.aggregate([{ $match: { userId: user._id } }, { $group: { _id: "$language", count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 5 }]),
-    CodePaste.find({ userId: user._id }).sort({ updatedAt: -1 }).limit(5).lean()
+    CodePaste.aggregate([{ $match: { userId: user._id } }, { $group: { _id: "$language", count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 8 }]),
+    CodePaste.find({ userId: user._id }).sort({ updatedAt: -1 }).limit(5).lean(),
+    CodePaste.countDocuments({ userId: user._id, category: "solution" }),
+    CodePaste.aggregate([
+      { $match: { userId: user._id, category: "solution", difficulty: { $in: ["Easy", "Medium", "Hard"] } } },
+      { $group: { _id: "$difficulty", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]),
+    CodePaste.aggregate([
+      { $match: { userId: user._id, category: "solution", topic: { $exists: true, $nin: ["", null] } } },
+      { $group: { _id: "$topic", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 }
+    ]),
+    CodePaste.aggregate([
+      { $match: { userId: user._id, createdAt: { $gte: activityStart } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]),
+    CodePaste.distinct("language", { userId: user._id }),
+    CodePaste.distinct("topic", { userId: user._id, category: "solution", topic: { $exists: true, $nin: ["", null] } })
   ]);
+
+  const difficultyCounts = new Map(difficulties.map((row) => [row._id, row.count]));
+  const monthlyCounts = new Map(activity.map((row) => [row._id, row.count]));
+  const monthlyActivity = [];
+  for (let offset = 5; offset >= 0; offset -= 1) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const key = monthDate.getFullYear() + "-" + String(monthDate.getMonth() + 1).padStart(2, "0");
+    monthlyActivity.push({
+      month: key,
+      label: monthDate.toLocaleString("en-US", { month: "short" }),
+      count: monthlyCounts.get(key) || 0
+    });
+  }
+
   return send(res, 200, {
-    stats: { total, pinned, unlisted, storedBytes: bytes[0]?.total || 0,
+    stats: {
+      total,
+      pinned,
+      unlisted,
+      storedBytes: bytes[0]?.total || 0,
+      solutionCount,
+      languageCount: languageValues.length,
+      topicCount: topicValues.length,
       topLanguages: languages.map((row) => ({ language: row._id, count: row.count })),
-      recent: recent.map((item) => publicPaste(item, false)) }
+      difficultyBreakdown: ["Easy", "Medium", "Hard"].map((difficulty) => ({
+        difficulty,
+        count: difficultyCounts.get(difficulty) || 0
+      })),
+      topicBreakdown: topics.map((row) => ({ topic: row._id, count: row.count })),
+      monthlyActivity,
+      recent: recent.map((item) => publicPaste(item, false))
+    }
   });
 }
 export default async function handler(req, res) {
