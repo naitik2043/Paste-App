@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, KeyRound, Mail, UserRound } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
+import PageTitle from "../components/PageTitle";
 
 export default function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
@@ -53,6 +54,7 @@ export default function Signup() {
 
   if (result) {
     return (
+      <PageTitle title="Create your account" />
       <AuthLayout eyebrow="ONE MORE STEP">
         <div className="auth-success-icon"><CheckCircle2 size={25} /></div>
         <h1 className="auth-title">Check your inbox.</h1>
