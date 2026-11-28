@@ -34,7 +34,10 @@ Both methods resolve to the same user identity when the verified email matches a
 - **Controlled sharing:** create unlisted links with 1-day, 7-day, 30-day or no-expiry policies; add password protection, cap successful views at 1, 5, 10, 25 or 100, and revoke access at any time.
 - **Credential hygiene warning:** a client-side advisory detects several common token, private-key and database-URI patterns before saving. This is a cautionary aid, not a complete secret scanner.
 - **Developer-friendly rendering:** syntax highlighting, copy-to-clipboard, language-aware code downloads and direct links to the original problem.
-- **Workspace insights:** track saved snippets, pinned references, active share links, stored content and language distribution.
+- **Workspace insights:** track saved snippets, pinned references, active share links, stored content, language mix, difficulty distribution, topic coverage and six-month library activity.
+- **DSA analytics:** review saved-solution difficulty, language mix, popular topics and monthly snippet creation trends.
+- **Cross-language comparison:** select a problem and compare two saved implementations side by side, including syntax, code size and recorded time/space complexity.
+- **Expanded language selection:** choose from 30+ programming, query, markup and configuration languages when creating, editing or filtering snippets.
 - **Portable backup:** export the vault as versioned JSON and import it into another Paste Vault account. Imported snippets always become private.
 - **Responsive product website:** public landing page, About, Help, Privacy and Terms pages, mobile navigation and light/dark themes.
 - **Installable shell:** PWA support for a familiar app-like experience.
@@ -83,6 +86,8 @@ Both methods resolve to the same user identity when the verified email matches a
 | --- | --- |
 | `/dashboard` | Workspace overview and quick capture |
 | `/pastes` | Searchable snippet library, folders and backup |
+| `/analytics` | DSA and workspace analytics |
+| `/compare` | Side-by-side comparison of saved solutions across languages |
 | `/pastes/:id` | Snippet details, editing, sharing and revisions |
 | `/profile` | Editable developer profile and workspace activity |
 | `/settings` | Account methods, password, appearance and privacy controls |
@@ -202,7 +207,7 @@ The check command runs ESLint, JavaScript syntax checks for frontend utilities a
 
 Configure the environment variables in the hosting provider before enabling standalone account registration in production. Verify the Resend sender domain and set `PUBLIC_APP_URL` to the canonical HTTPS Paste Vault origin. LeetMetric SSO additionally requires the existing one-time ticket issuer and Paste Vault to use the same trusted user identity store.
 
-The public product pages are indexable. Authenticated workspace routes, auth screens and unlisted share pages are excluded from search indexing.
+The public product pages are indexable. Authenticated workspace routes, analytics, comparison tools, auth screens and unlisted share pages are excluded from search indexing.
 
 ## License
 
