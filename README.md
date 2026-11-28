@@ -1,192 +1,76 @@
-Here’s a complete rewrite of the `README.md` file for your React + Vite project with Tailwind CSS installation and details about the packages used:
+# Paste Vault
 
----
+A private, searchable code workspace connected to LeetMetric.
 
-# React + Vite + TailwindCSS Template
+Paste Vault captures LeetCode solutions, reusable code patterns and debugging notes so that you can retrieve the approach behind a solution, not only the code.
 
-This template provides a minimal setup for building a React application using Vite. It includes Hot Module Replacement (HMR) for fast refresh, Tailwind CSS for utility-first styling, and ESLint for code linting.
+## Product capabilities
 
-## Features
-- **Vite**: Ultra-fast development and build tooling.
-- **React**: Latest version for building modern UI components.
-- **Tailwind CSS**: Utility-first CSS framework for building custom designs without leaving your HTML.
-- **ESLint**: A pluggable linter tool for ensuring code quality.
-- **Redux Toolkit**: State management with slices and reducers.
-- **React Hot Toast**: For elegant notifications in your application.
-- **React Router DOM**: Declarative routing for React.
+- Private-by-default snippets with explicit unlisted-link sharing.
+- Syntax-aware code rendering for common programming languages.
+- Search by title, code content, problem title, tags and topic.
+- Filter by language, category and pinned status.
+- LeetCode context: problem title, canonical URL, difficulty and topic/pattern.
+- Structured solution journal: approach/intuition, time complexity, space complexity and key takeaways/edge cases.
+- Full snippet editing with automatic version snapshots and restore.
+- Workspace analytics for snippet totals, pinned items, share links, storage and languages.
+- Up to 20 saved revisions per snippet, with restore.
+- Copy-ready detail view and direct problem navigation.
+- Responsive light/dark interface and installable PWA shell.
+- One-time SSO handoff from a signed-in LeetMetric dashboard.
+- Server-side ownership checks for private reads, updates and deletes.
+- Same-origin checks and per-instance rate limits on state-changing API requests.
+- No-index headers for unlisted share pages and non-cacheable private API responses.
+- Data-portable configuration template and explicit secret exclusions in Git.
 
----
+## Integration architecture
 
-## Installation
+LeetMetric validates the user's active session and generates a random 256-bit, 90-second one-time launch ticket. Only the ticket's SHA-256 hash is stored in MongoDB. Paste Vault atomically consumes that hash, checks the user's current token version and creates a separate HttpOnly session signed with Paste Vault's own JWT secret. The ticket is delivered in the URL fragment, not the initial HTTP request.
 
-### Step 1: Create a Vite project
+Both Vercel projects use the same MongoDB database, but each keeps its own independent JWT signing secret. LeetMetric users and account deletion remain owned by LeetMetric; Paste Vault stores snippets in its own code_pastes collection linked by user ID.
 
-1. Install Vite globally (if not already installed):
+## Environment variables
 
-   ```bash
-   npm create vite@latest
-   ```
+On Paste-App (Paste Vault), set:
+- MONGODB_URI — same database used by LeetMetric.
+- JWT_SECRET — Paste Vault's own random session-signing secret (minimum 32 characters); it must be different from LeetMetric's secret.
 
-2. When prompted, choose the following:
-   - Project name: `paste`
-   - Framework: `React`
-   - Variant: `JavaScript` or `TypeScript` as per your preference.
+On LeetMetric, set:
+- PASTE_APP_URL — https://paste-app-wine.vercel.app
+- MONGODB_URI — same database used by Paste Vault.
+- JWT_SECRET — LeetMetric's own session-signing secret (minimum 32 characters); do not share it with Paste Vault.
 
-3. Navigate into the project directory:
+Never commit .env files, connection strings or secrets. Configure them in Vercel Project Settings → Environment Variables, then redeploy both projects.
 
-   ```bash
-   cd paste
-   ```
+## Local development
 
-### Step 2: Install Tailwind CSS
+Copy `.env.example` to `.env`, configure `MONGODB_URI` and an independent Paste Vault `JWT_SECRET`, then run `npm install` and `npm run dev`. Do not reuse LeetMetric's signing secret. Local development uses non-Secure cookies on localhost; deployed sessions use Secure cookies.
 
-To add Tailwind CSS to your Vite + React project, follow these steps:
+Run the quality checks with npm run check. Authenticated API routes require MongoDB and a valid launch ticket from LeetMetric.
 
-1. Install Tailwind CSS and its dependencies:
+## API overview
 
-   ```bash
-   npm install -D tailwindcss postcss autoprefixer
-   ```
+| Method | Route | Purpose |
+| --- | --- | --- |
+| POST | /api/auth/exchange | Consume a one-time LeetMetric launch ticket |
+| GET | /api/auth/me | Read current Paste Vault session |
+| POST | /api/auth/logout | Clear Paste Vault session |
+| GET / POST | /api/pastes | Search/list or create snippets |
+| GET / PATCH / DELETE | /api/pastes/:id | Read or manage an owned snippet |
+| POST | /api/pastes/:id/restore | Restore a saved version |
+| GET | /api/stats | Workspace and language insights |
+| GET | /api/share/:shareId | Read an explicitly unlisted snippet |
 
-2. Initialize Tailwind configuration:
+## Privacy and safety
 
-   ```bash
-   npx tailwindcss init
-   ```
+- New snippets are private.
+- Anyone with an unlisted link can view that snippet. Unlisted links are not suitable for secrets.
+- Do not paste passwords, API keys, private keys, session tokens or sensitive personal data.
+- Paste Vault does not execute submitted code.
+- Private operations require a valid session and are scoped to the signed-in LeetMetric user.
+- LeetMetric account deletion is designed to remove that user's snippets and unused SSO tickets.
+- Shared recipients can copy content; copied content cannot be recalled.
 
-   This will create a `tailwind.config.js` file in your project.
+## License
 
-3. Update the `tailwind.config.js` file with the following content to specify which files Tailwind should scan:
-
-   ```js
-   /** @type {import('tailwindcss').Config} */
-   export default {
-     content: [
-       './index.html',
-       './src/**/*.{js,ts,jsx,tsx}',
-     ],
-     theme: {
-       extend: {},
-     },
-     plugins: [],
-   }
-   ```
-
-4. Add the following lines to your `src/index.css` (or `src/main.css` if you’re using that):
-
-   ```css
-   @tailwind base;
-   @tailwind components;
-   @tailwind utilities;
-   ```
-
-### Step 3: Install Required Packages
-
-Install the project dependencies:
-
-```bash
-npm install
-```
-
-### Step 4: Run the Project
-
-Start the development server with the following command:
-
-```bash
-npm run dev
-```
-
-This command will launch the development server, and your project will be available at `http://localhost:5173`.
-
----
-
-## Scripts
-
-- **`npm run dev`**: Starts the Vite development server with HMR.
-- **`npm run build`**: Builds the project for production.
-- **`npm run preview`**: Serves the production build for preview.
-- **`npm run lint`**: Lints your code using ESLint.
-
----
-
-## Packages Used
-
-Here is a list of all the important packages used in this project:
-
-### Dependencies
-- **@reduxjs/toolkit**: A powerful library for managing application state with Redux.
-- **lucide-react**: Icon set for React that provides various UI icons.
-- **react**: The core React library for building user interfaces.
-- **react-dom**: DOM bindings for React.
-- **react-hot-toast**: Notifications system for React.
-- **react-redux**: Official React bindings for Redux.
-- **react-router-dom**: Provides routing functionalities in React apps.
-
-### Dev Dependencies
-- **@eslint/js**: ESLint configurations for JavaScript.
-- **@types/react**: TypeScript type definitions for React (if you are using TypeScript).
-- **@types/react-dom**: TypeScript type definitions for React DOM (if you are using TypeScript).
-- **@vitejs/plugin-react**: Official Vite plugin for React, enabling Fast Refresh using Babel.
-- **autoprefixer**: PostCSS plugin that adds vendor prefixes automatically.
-- **eslint**: A tool for identifying and fixing problems in JavaScript code.
-- **eslint-plugin-react**: ESLint plugin for React-specific linting rules.
-- **eslint-plugin-react-hooks**: Linting rules for React Hooks.
-- **eslint-plugin-react-refresh**: Linting rules for React Fast Refresh.
-- **globals**: Global variables configuration for ESLint.
-- **postcss**: A tool for transforming CSS with JavaScript plugins.
-- **tailwindcss**: Utility-first CSS framework.
-- **vite**: Build tool for fast and optimized web development.
-
----
-
-## Project Structure
-
-Here is the basic structure of the project:
-
-```
-paste/
-│
-├── node_modules/
-├── public/
-├── src/
-│   ├── assets/
-│   ├── components/
-│   ├── pages/
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
-│
-├── .eslintrc.js
-├── tailwind.config.js
-├── postcss.config.js
-├── vite.config.js
-└── package.json
-```
-
----
-
-## Tailwind CSS Configuration
-
-The `tailwind.config.js` file is configured to scan all the files in the `src` directory for Tailwind CSS classes and allows you to customize the theme and plugins.
-
-```js
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    './index.html',
-    './src/**/*.{js,ts,jsx,tsx}',
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-```
-
----
-
-## Conclusion
-
-This template sets up a React project with Vite, ESLint, Tailwind CSS, and Redux Toolkit for state management. With this setup, you can quickly start building modern, scalable web applications. Feel free to customize it further according to your project requirements!
-
----
+MIT. See LICENSE.

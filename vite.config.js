@@ -8,20 +8,21 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "PasteApp",
-        short_name: "PasteApp",
+        name: "Paste Vault",
+        short_name: "Paste Vault",
+        description: "A private LeetMetric-connected developer snippet workspace.",
         start_url: "/",
+        scope: "/",
         display: "standalone",
-        background_color: "#111827",
-        theme_color: "#111827",
+        background_color: "#090d18",
+        theme_color: "#090d18",
         icons: [
-          {
-            src: "/pwa-192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-        ],
+          { src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }
+        ]
       },
-    }),
-  ],
+      workbox: {
+        navigateFallbackDenylist: [/^\/api\//]
+      }
+    })
+  ]
 });
