@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import * as validation from "./validation.js";
 import { createRateLimiter, isSameOrigin } from "./security.js";
 
-const { normalizePaste, LANGUAGES } = validation;
+const { normalizePaste, normalizeShareExpiry, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
 const SESSION_COOKIE = "paste_session";
 const rateLimit = createRateLimiter();
@@ -53,6 +53,7 @@ const pasteSchema = new Schema({
   tags: { type: [String], default: [] },
   visibility: { type: String, enum: ["private", "unlisted"], default: "private" },
   shareId: { type: String, sparse: true, unique: true },
+  shareExpiresAt: { type: Date, default: null },
   isPinned: { type: Boolean, default: false },
   viewCount: { type: Number, default: 0 },
   history: { type: [revisionSchema], default: [] }
@@ -178,6 +179,7 @@ function publicPaste(paste, includeContent) {
     keyTakeaway: paste.keyTakeaway || "",
     tags: paste.tags || [],
     visibility: paste.visibility, shareId: paste.visibility === "unlisted" ? paste.shareId : "",
+    shareExpiresAt: paste.visibility === "unlisted" ? paste.shareExpiresAt || null : null,
     isPinned: Boolean(paste.isPinned), viewCount: Number(paste.viewCount || 0),
     historyCount: (paste.history || []).length, createdAt: paste.createdAt, updatedAt: paste.updatedAt
   };
@@ -267,14 +269,19 @@ async function pasteCollection(req, res) {
   }
   if (req.method === "POST") {
     try {
-      const data = normalizePaste(bodyOf(req));
+      const requestBody = bodyOf(req);
+      const data = normalizePaste(requestBody);
+      const shareExpiresAt = data.visibility === "unlisted"
+        ? normalizeShareExpiry(requestBody.shareDuration)
+        : null;
       const existingCount = await CodePaste.countDocuments({ userId: user._id });
       if (existingCount >= 2000) {
         return send(res, 409, { error: "Your vault has reached its 2,000-snippet limit. Export or remove older snippets to make room." });
       }
       const paste = await CodePaste.create({
         ...data, userId: user._id,
-        shareId: data.visibility === "unlisted" ? crypto.randomBytes(18).toString("base64url") : undefined
+        shareId: data.visibility === "unlisted" ? crypto.randomBytes(18).toString("base64url") : undefined,
+        shareExpiresAt
       });
       return send(res, 201, { paste: publicPaste(paste, true) });
     } catch (error) { return makeError(res, error, "Unable to save this snippet."); }
@@ -330,8 +337,16 @@ async function pasteItem(req, res, id, action) {
     if (changed) addHistoryRevision(paste);
     Object.assign(paste, data);
     if (body.isPinned !== undefined) paste.isPinned = Boolean(body.isPinned);
-    if (data.visibility === "private") paste.shareId = undefined;
-    else if (!paste.shareId) paste.shareId = crypto.randomBytes(18).toString("base64url");
+    if (data.visibility === "private") {
+      paste.shareId = undefined;
+      paste.shareExpiresAt = undefined;
+    } else {
+      const isNewShare = !paste.shareId;
+      if (isNewShare) paste.shareId = crypto.randomBytes(18).toString("base64url");
+      if (isNewShare || Object.prototype.hasOwnProperty.call(body, "shareDuration")) {
+        paste.shareExpiresAt = normalizeShareExpiry(body.shareDuration);
+      }
+    }
     await paste.save();
     return send(res, 200, { paste: publicPaste(paste, true) });
   } catch (error) { return makeError(res, error, "Unable to update this snippet."); }
@@ -340,8 +355,17 @@ async function sharePaste(req, res, shareId) {
   res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(shareId)) return send(res, 404, { error: "Shared snippet not found." });
-  const paste = await CodePaste.findOne({ shareId, visibility: "unlisted" }).lean();
-  if (!paste) return send(res, 404, { error: "Shared snippet not found or made private." });
+  const now = new Date();
+  const paste = await CodePaste.findOne({
+    shareId,
+    visibility: "unlisted",
+    $or: [
+      { shareExpiresAt: null },
+      { shareExpiresAt: { $exists: false } },
+      { shareExpiresAt: { $gt: now } }
+    ]
+  }).lean();
+  if (!paste) return send(res, 404, { error: "This share link has expired or the snippet is no longer shared." });
   await CodePaste.updateOne({ _id: paste._id }, { $inc: { viewCount: 1 } });
   return send(res, 200, { paste: publicPaste({ ...paste, viewCount: Number(paste.viewCount || 0) + 1 }, true) });
 }
