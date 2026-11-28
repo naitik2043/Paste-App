@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeTags, normalizeProblemUrl, normalizePaste, normalizeShareExpiry } from "./validation.js";
+import { normalizeTags, normalizeProblemUrl, normalizePaste, normalizeShareExpiry, normalizeFolder, validateImportBatch } from "./validation.js";
 
 test("normalizes tags, removes duplicates and limits the collection", () => {
   assert.deepEqual(normalizeTags([" DP ", "dp", "Graphs", "", "arrays"]), ["dp", "graphs", "arrays"]);
@@ -67,4 +67,34 @@ test("normalizes supported share link expiration policies", () => {
   assert.equal(normalizeShareExpiry("30d", now).getTime(), now + 30 * 24 * 60 * 60 * 1000);
   assert.equal(normalizeShareExpiry("never", now), null);
   assert.throws(() => normalizeShareExpiry("forever-ish", now), /expiration/);
+});
+
+
+test("normalizes folder names, spacing and supported colors", () => {
+  assert.deepEqual(normalizeFolder({ name: "  Dynamic   Programming ", color: "violet" }), {
+    name: "Dynamic Programming",
+    nameKey: "dynamic programming",
+    color: "violet"
+  });
+  assert.throws(() => normalizeFolder({ name: "x" }), /2 and 40/);
+  assert.throws(() => normalizeFolder({ name: "Backend", color: "ultraviolet" }), /supported folder color/);
+});
+
+test("validates portable import files and forces snippets to private visibility", () => {
+  const batch = validateImportBatch({
+    format: "paste-vault-export",
+    version: 1,
+    snippets: [{
+      title: "Imported solution",
+      content: "int main() { return 0; }",
+      language: "cpp",
+      visibility: "unlisted",
+      folderName: "DSA",
+      isPinned: true
+    }]
+  });
+  assert.equal(batch[0].visibility, "private");
+  assert.equal(batch[0].folderName, "DSA");
+  assert.equal(batch[0].isPinned, true);
+  assert.throws(() => validateImportBatch({ format: "unknown", version: 1, snippets: [] }), /supported Paste Vault export/);
 });
