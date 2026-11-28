@@ -212,3 +212,18 @@ The public product pages are indexable. Authenticated workspace routes, analytic
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+
+## Cross-language comparison
+
+Open **Compare** from the authenticated workspace to review two saved implementations of the same problem. Choose a problem, select a programming language for each side, and choose the saved solution to display. The comparison shows the code, line/character counts and complexity notes saved with each implementation.
+
+The comparison does not execute code or claim to benchmark runtime. Time and space complexity are displayed as developer-provided notes; actual performance depends on the algorithm, input and runtime environment. The picker reads up to the 500 most recently updated snippets.
+
+## Analytics
+
+The authenticated **Analytics** page summarizes saved snippets, difficulty labels, topic coverage, language distribution and the number of new snippets created in each of the last six calendar months. Analytics are calculated from the signed-in user's own records and do not import or infer external LeetCode statistics.
+
+## Supported languages
+
+Language choices are centrally defined in `src/data/languages.js` and validated by the API. They include C, C++, C#, Java, JavaScript, TypeScript, Python, Go, Rust, PHP, Ruby, Kotlin, Swift, Dart, R, Scala, Perl, Lua, PowerShell, SQL, HTML, CSS, JSON, Bash, Markdown, YAML, XML, Dockerfile, GraphQL and plain text. Syntax coloring depends on the installed highlight.js language bundle; unsupported highlighter grammars fall back to safe plain-text rendering.
