@@ -101,11 +101,19 @@ export function normalizeShareExpiry(duration = "7d", now = Date.now()) {
 const SHARE_VIEW_LIMITS = new Set([0, 1, 5, 10, 25, 100]);
 
 export function normalizeShareViewLimit(value = 0) {
+  const isNumericInput = typeof value === "number" ||
+    (typeof value === "string" && /^\\d+$/.test(value));
   const limit = Number(value);
-  if (!Number.isInteger(limit) || !SHARE_VIEW_LIMITS.has(limit)) {
+  if (!isNumericInput || !Number.isInteger(limit) || !SHARE_VIEW_LIMITS.has(limit)) {
     throw invalid("Choose a supported share view limit.");
   }
   return limit;
+}
+
+export function shareViewLimitReached(limit = 0, viewsUsed = 0) {
+  const maximum = Number(limit) || 0;
+  const used = Number(viewsUsed) || 0;
+  return maximum > 0 && used >= maximum;
 }
 
 
