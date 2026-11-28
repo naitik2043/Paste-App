@@ -47,8 +47,8 @@ export default function VerifyEmail() {
   }, [navigate, refresh, token]);
 
   return (
+      <AuthLayout eyebrow="EMAIL VERIFICATION">
       <PageTitle title="Verify your email" />
-    <AuthLayout eyebrow="EMAIL VERIFICATION">
       {status === "checking" && <div className="auth-status-icon"><LoaderCircle className="auth-spinner" size={26} /></div>}
       {status === "success" && <div className="auth-success-icon"><CheckCircle2 size={25} /></div>}
       {status === "error" && <div className="auth-error-icon"><XCircle size={25} /></div>}
