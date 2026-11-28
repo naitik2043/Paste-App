@@ -102,7 +102,7 @@ const SHARE_VIEW_LIMITS = new Set([0, 1, 5, 10, 25, 100]);
 
 export function normalizeShareViewLimit(value = 0) {
   const isNumericInput = typeof value === "number" ||
-    (typeof value === "string" && /^\\d+$/.test(value));
+    (typeof value === "string" && /^\d+$/.test(value));
   const limit = Number(value);
   if (!isNumericInput || !Number.isInteger(limit) || !SHARE_VIEW_LIMITS.has(limit)) {
     throw invalid("Choose a supported share view limit.");
