@@ -1,7 +1,9 @@
 import { LockKeyhole, ShieldCheck } from "lucide-react";
+import PageTitle from "../components/PageTitle";
 
 export default function Privacy() {
   return (
+      <PageTitle title="Privacy overview" description="Understand how Paste Vault handles account information, private snippets, authentication and sharing." noindex={false} />
     <div className="public-content-page legal-page">
       <section className="public-page-hero compact"><div className="landing-pill"><LockKeyhole size={14} /> PRIVACY OVERVIEW</div><h1>Your code is <span>yours.</span></h1><p>This page explains the main data practices built into Paste Vault. It is a product overview, not a substitute for legal advice.</p></section>
       <div className="legal-updated"><ShieldCheck size={15} /> Product privacy overview · Updated November 2026</div>
