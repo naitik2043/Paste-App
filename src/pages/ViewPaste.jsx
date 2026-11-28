@@ -36,7 +36,9 @@ export default function ViewPaste() {
   const [showHistory, setShowHistory] = useState(false);
   const [shareDuration, setShareDuration] = useState("7d");
   const [secretAcknowledged, setSecretAcknowledged] = useState(false);
+  const [shareSecretAcknowledged, setShareSecretAcknowledged] = useState(false);
   const editSecretWarnings = detectPotentialSecrets(editForm?.content || "");
+  const shareSecretWarnings = detectPotentialSecrets(paste?.content || "");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,6 +98,8 @@ export default function ViewPaste() {
       setPaste(result.paste);
       setEditForm(toEditForm(result.paste));
       setEditing(false);
+      setSecretAcknowledged(false);
+      setShareSecretAcknowledged(false);
       toast.success("Snippet and learning notes updated.");
     } catch (error) {
       toast.error(error.message);
@@ -130,6 +134,9 @@ export default function ViewPaste() {
   }
 
   async function share() {
+    if (paste.visibility !== "unlisted" && shareSecretWarnings.length && !shareSecretAcknowledged) {
+      return toast.error("Review the sensitive-content warning before creating a share link.");
+    }
     try {
       const wasAlreadyShared = paste.visibility === "unlisted";
       const updated = await update({ visibility: "unlisted", shareDuration });
@@ -210,6 +217,7 @@ export default function ViewPaste() {
           <p>{paste.visibility === "unlisted" ? "Your snippet is accessible to anyone with its link. Update its expiry or disable the link at any time." : "Create a read-only link when you need to share this snippet. It stays private until you enable sharing."}</p>
           {paste.visibility === "unlisted" && <small>{paste.shareExpiresAt ? "Current expiry: " + new Date(paste.shareExpiresAt).toLocaleString() : "Current link has no expiry. Set one below to limit access."}</small>}
         </div>
+        {paste.visibility !== "unlisted" && <SecretWarningNotice warnings={shareSecretWarnings} acknowledged={shareSecretAcknowledged} onAcknowledge={setShareSecretAcknowledged} />}
         <div className="share-settings-actions">
           <label htmlFor="share-duration">LINK LIFETIME
             <select id="share-duration" value={shareDuration} onChange={(event) => setShareDuration(event.target.value)}>
