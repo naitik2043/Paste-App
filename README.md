@@ -18,6 +18,7 @@ Paste Vault helps developers preserve both the implementation and the reasoning 
 - **Searchable library:** search titles, code, problem titles, topics and tags; filter by language, category and pinned state.
 - **Version history:** edits create revision snapshots; restore an earlier version when needed.
 - **Controlled sharing:** create unlisted links with 1-day, 7-day, 30-day or no-expiry policies; update expiration or revoke access at any time.
+- **Credential hygiene warning:** a client-side advisory detects several common token, private-key and database-URI patterns before saving. Users must acknowledge warnings, but this is not a substitute for secret management or a security scanner.
 - **Developer-friendly rendering:** syntax highlighting, copy-to-clipboard and direct links to the original problem.
 - **Workspace insights:** track saved snippets, pinned references, active share links, stored content and language distribution.
 - **Responsive interface:** polished desktop/mobile layout with persisted light and dark themes.
