@@ -19,6 +19,9 @@ Paste Vault captures LeetCode solutions, reusable code patterns and debugging no
 - Responsive light/dark interface and installable PWA shell.
 - One-time SSO handoff from a signed-in LeetMetric dashboard.
 - Server-side ownership checks for private reads, updates and deletes.
+- Same-origin checks and per-instance rate limits on state-changing API requests.
+- No-index headers for unlisted share pages and non-cacheable private API responses.
+- Data-portable configuration template and explicit secret exclusions in Git.
 
 ## Integration architecture
 
@@ -41,7 +44,7 @@ Never commit .env files, connection strings or secrets. Configure them in Vercel
 
 ## Local development
 
-Run npm install, then npm run dev.
+Copy `.env.example` to `.env`, configure `MONGODB_URI` and an independent Paste Vault `JWT_SECRET`, then run `npm install` and `npm run dev`. Do not reuse LeetMetric's signing secret. Local development uses non-Secure cookies on localhost; deployed sessions use Secure cookies.
 
 Run the quality checks with npm run check. Authenticated API routes require MongoDB and a valid launch ticket from LeetMetric.
 
