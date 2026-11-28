@@ -17,10 +17,12 @@ Paste Vault helps developers preserve both the implementation and the reasoning 
 - **Structured solution journal:** record the problem, language, difficulty, topic, intuition, time and space complexity, key takeaways and edge cases.
 - **Searchable library:** search titles, code, problem titles, topics and tags; filter by language, category and pinned state.
 - **Version history:** edits create revision snapshots; restore an earlier version when needed.
-- **Controlled sharing:** create unlisted links with 1-day, 7-day, 30-day or no-expiry policies; update expiration or revoke access at any time.
+- **Controlled sharing:** create unlisted links with 1-day, 7-day, 30-day or no-expiry policies; add password protection, update expiration or revoke access at any time.
 - **Credential hygiene warning:** a client-side advisory detects several common token, private-key and database-URI patterns before saving. Users must acknowledge warnings, but this is not a substitute for secret management or a security scanner.
 - **Developer-friendly rendering:** syntax highlighting, copy-to-clipboard, language-aware code downloads and direct links to the original problem.
 - **Workspace insights:** track saved snippets, pinned references, active share links, stored content and language distribution.
+- **Collections:** organize snippets into up to 100 color-coded folders, move snippets between collections, and safely delete a collection without deleting its snippets.
+- **Portable backup:** export the full vault as versioned JSON and import it into another Paste Vault account. Imported snippets always become private.
 - **Responsive interface:** polished desktop/mobile layout with persisted light and dark themes.
 - **Installable shell:** PWA support for a familiar app-like experience.
 
@@ -51,6 +53,10 @@ Paste Vault helps developers preserve both the implementation and the reasoning 
 | `/pastes` | Searchable snippet library |
 | `/pastes/:id` | Snippet details, editing, sharing and revision history |
 | `/profile` | Account profile, workspace activity and security information |
+| `/api/folders` | List or create collections |
+| `/api/folders/:id` | Rename or safely delete a collection |
+| `/api/export` | Paginated, versioned JSON backup export |
+| `/api/import` | Import private snippets in validated batches |
 | `/share/:shareId` | Publicly reachable unlisted snippet view |
 
 ## Architecture and authentication
@@ -138,7 +144,7 @@ Redeploy both applications after configuration changes. Never commit `.env`, con
 | GET / PATCH / DELETE | `/api/pastes/:id` | Read or manage an owned snippet |
 | POST | `/api/pastes/:id/restore` | Restore a saved revision |
 | GET | `/api/stats` | Workspace and language insights |
-| GET | `/api/share/:shareId` | Read an explicitly unlisted snippet |
+| GET / POST | `/api/share/:shareId` | Read an unlisted snippet or unlock a password-protected share |
 
 ## Security and privacy
 
@@ -147,18 +153,18 @@ Redeploy both applications after configuration changes. Never commit `.env`, con
 - Session cookies are HttpOnly; deployed cookies use Secure settings.
 - Private API responses are non-cacheable, and unlisted pages send no-index headers.
 - The application displays code; it does not execute submitted snippets.
-- Unlisted URLs are bearer links: anyone who obtains an active link can view its snippet until it expires or is revoked. Do not put secrets or credentials in shared snippets.
+- Unlisted URLs are bearer links: anyone who obtains an active link can view its snippet until it expires or is revoked. Password-protected links require a separate password.
+- Share passwords are salted and derived with Node.js scrypt; the plaintext password is never stored. Password verification uses a constant-time comparison and is rate-limited.
+- JSON backups intentionally exclude active share IDs, share passwords and revision history. Imports always create private snippets so a backup cannot silently reactivate old public links.
 - Do not store passwords, API keys, private keys, session tokens or sensitive personal information in Paste Vault.
 
-The current product focuses on a private learning and reference workspace. Features such as public discovery, folder collaboration, password-protected shares, expiring links and client-side zero-knowledge encryption are not represented as available unless implemented and tested.
+The current product focuses on a private, single-owner learning and reference workspace. Public snippet discovery, real-time collaborative editing and client-side zero-knowledge encryption are not currently part of the product.
 
 ## Roadmap
 
-- [ ] Optional folders and nested collections
 - [ ] Share-link view limits
-- [ ] Password-protected sharing
 - [ ] Browser-side encryption for a dedicated secure-share mode
-- [ ] Import/export (JSON, Markdown and GitHub Gist)
+- [ ] Markdown and GitHub Gist import/export
 - [ ] Multi-file snippets and downloadable archives
 - [ ] Keyboard shortcuts and editor ergonomics
 - [ ] More comprehensive API and browser integration tests
