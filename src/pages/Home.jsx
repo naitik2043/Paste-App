@@ -10,7 +10,7 @@ import { detectPotentialSecrets } from "../utils/secretDetection.js";
 const emptyForm = {
   title: "", content: "", language: "cpp", category: "solution", problemTitle: "",
   problemUrl: "", difficulty: "Medium", topic: "", approach: "", timeComplexity: "",
-  spaceComplexity: "", keyTakeaway: "", tags: "", visibility: "private"
+  spaceComplexity: "", keyTakeaway: "", tags: "", folderId: "", visibility: "private"
 };
 
 export default function Home() {
@@ -20,15 +20,18 @@ export default function Home() {
   const [secretAcknowledged, setSecretAcknowledged] = useState(false);
   const secretWarnings = detectPotentialSecrets(form.content);
   const [stats, setStats] = useState(null);
+  const [folders, setFolders] = useState([]);
   const [recent, setRecent] = useState([]);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/stats", { credentials: "same-origin" }).then((r) => r.json()),
-      fetch("/api/pastes?limit=4", { credentials: "same-origin" }).then((r) => r.json())
-    ]).then(([summary, list]) => {
+      fetch("/api/pastes?limit=4", { credentials: "same-origin" }).then((r) => r.json()),
+      fetch("/api/folders", { credentials: "same-origin" }).then((r) => r.json())
+    ]).then(([summary, list, folderResult]) => {
       setStats(summary.stats || null);
       setRecent(list.pastes || []);
+      setFolders(folderResult.folders || []);
     }).catch(() => toast.error("Unable to load your snippet workspace."));
   }, []);
 
@@ -93,6 +96,11 @@ export default function Home() {
               <div><label htmlFor="snippet-language">LANGUAGE</label><select id="snippet-language" value={form.language} onChange={(e) => update("language", e.target.value)}>{["cpp","python","javascript","typescript","java","go","rust","sql","html","css","json","bash","text"].map((v) => <option key={v} value={v}>{v}</option>)}</select></div>
               <div><label htmlFor="snippet-category">TYPE</label><select id="snippet-category" value={form.category} onChange={(e) => update("category", e.target.value)}><option value="solution">LeetCode solution</option><option value="snippet">Code snippet</option><option value="template">Template</option><option value="notes">Notes</option></select></div>
             </div>
+            <label htmlFor="snippet-folder">COLLECTION</label>
+            <select id="snippet-folder" value={form.folderId} onChange={(e) => update("folderId", e.target.value)}>
+              <option value="">Unfiled</option>
+              {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+            </select>
             <label htmlFor="snippet-content">CODE / NOTES <span className="label-muted">UP TO 1 MB</span></label>
             <textarea id="snippet-content" className="code-input" value={form.content} onChange={(e) => update("content", e.target.value)} placeholder={"// Your accepted or reusable implementation…"} rows={11} required />
             <SecretWarningNotice warnings={secretWarnings} acknowledged={secretAcknowledged} onAcknowledge={setSecretAcknowledged} />
