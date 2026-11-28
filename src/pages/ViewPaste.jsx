@@ -7,6 +7,7 @@ import PageTitle from "../components/PageTitle";
 import SecretWarningNotice from "../components/SecretWarningNotice";
 import { detectPotentialSecrets } from "../utils/secretDetection.js";
 import { downloadSnippet } from "../utils/downloadSnippet.js";
+import { LANGUAGE_OPTIONS } from "../data/languages.js";
 
 function toEditForm(paste) {
   return {
@@ -314,7 +315,7 @@ export default function ViewPaste() {
           <label htmlFor="edit-title">TITLE</label>
           <input id="edit-title" value={editForm.title} maxLength={100} onChange={(event) => changeEditField("title", event.target.value)} required />
           <div className="form-row">
-            <div><label htmlFor="edit-language">LANGUAGE</label><select id="edit-language" value={editForm.language} onChange={(event) => changeEditField("language", event.target.value)}>{["cpp","python","javascript","typescript","java","go","rust","sql","html","css","json","bash","text"].map((value) => <option key={value}>{value}</option>)}</select></div>
+            <div><label htmlFor="edit-language">LANGUAGE</label><select id="edit-language" value={editForm.language} onChange={(event) => changeEditField("language", event.target.value)}>{LANGUAGE_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}</select></div>
             <div><label htmlFor="edit-category">TYPE</label><select id="edit-category" value={editForm.category} onChange={(event) => changeEditField("category", event.target.value)}><option value="solution">LeetCode solution</option><option value="snippet">Code snippet</option><option value="template">Template</option><option value="notes">Notes</option></select></div>
           </div>
           <label htmlFor="edit-content">CODE / NOTES</label>
