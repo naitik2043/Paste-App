@@ -6,6 +6,7 @@ import PasteCard from "../components/PasteCard";
 import PageTitle from "../components/PageTitle";
 import SecretWarningNotice from "../components/SecretWarningNotice";
 import { detectPotentialSecrets } from "../utils/secretDetection.js";
+import { useSession } from "../context/useSession";
 
 const emptyForm = {
   title: "", content: "", language: "cpp", category: "solution", problemTitle: "",
@@ -14,6 +15,7 @@ const emptyForm = {
 };
 
 export default function Home() {
+  const { user } = useSession();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -76,7 +78,7 @@ export default function Home() {
       <PageTitle title="Your code, organized" />
       <section className="welcome-row">
         <div><p className="eyebrow">PRIVATE DEVELOPER WORKSPACE</p><h1>Save the solution.<br /><span>Remember the thinking.</span></h1><p className="welcome-copy">Capture LeetCode solutions, reusable patterns and debugging notes. Find them when the next problem looks familiar.</p></div>
-        <div className="welcome-badge"><Sparkles size={18} /><span>LeetMetric connected</span></div>
+        <div className="welcome-badge"><Sparkles size={18} /><span>{user?.authProviders?.includes("leetmetric") ? "LeetMetric connected" : "Standalone workspace"}</span></div>
       </section>
 
       <section className="stats-grid" aria-label="Vault statistics">
