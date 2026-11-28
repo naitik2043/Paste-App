@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Braces, CalendarDays, Code2, ExternalLink, FileCode2, Github, Globe, Linkedin, LockKeyhole, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowUpRight, Braces, CalendarDays, Code2, ExternalLink, Github, Globe, Linkedin, LockKeyhole, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { useSession } from "../context/useSession";
 import { LEETMETRIC_URL } from "../constants";
 import PageTitle from "../components/PageTitle";
