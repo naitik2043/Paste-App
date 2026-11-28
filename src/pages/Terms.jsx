@@ -3,8 +3,8 @@ import PageTitle from "../components/PageTitle";
 
 export default function Terms() {
   return (
+      <div className="public-content-page legal-page">
       <PageTitle title="Terms of use" description="Read the terms and usage expectations for the Paste Vault developer workspace." noindex={false} />
-    <div className="public-content-page legal-page">
       <section className="public-page-hero compact"><div className="landing-pill"><FileText size={14} /> TERMS OF USE</div><h1>Use it thoughtfully.<br /><span>Keep it respectful.</span></h1><p>These product terms describe the expected use of Paste Vault while the service is provided.</p></section>
       <div className="legal-updated"><ShieldCheck size={15} /> Product terms overview · Updated November 2026</div>
       <article className="legal-copy">
