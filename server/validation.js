@@ -98,6 +98,16 @@ export function normalizeShareExpiry(duration = "7d", now = Date.now()) {
   return new Date(now + lifetime);
 }
 
+const SHARE_VIEW_LIMITS = new Set([0, 1, 5, 10, 25, 100]);
+
+export function normalizeShareViewLimit(value = 0) {
+  const limit = Number(value);
+  if (!Number.isInteger(limit) || !SHARE_VIEW_LIMITS.has(limit)) {
+    throw invalid("Choose a supported share view limit.");
+  }
+  return limit;
+}
+
 
 export const FOLDER_COLORS = new Set(["blue", "violet", "green", "amber", "rose", "slate"]);
 
