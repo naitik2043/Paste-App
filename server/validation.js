@@ -58,6 +58,9 @@ export function normalizePaste(input, current) {
     category,
     visibility,
     difficulty,
+    folderId: Object.prototype.hasOwnProperty.call(source, "folderId")
+      ? String(source.folderId || "").trim()
+      : current?.folderId ? String(current.folderId) : "",
     problemTitle: String(source.problemTitle ?? current?.problemTitle ?? "").trim().slice(0, 120),
     problemUrl: Object.prototype.hasOwnProperty.call(source, "problemUrl")
       ? normalizeProblemUrl(source.problemUrl)
