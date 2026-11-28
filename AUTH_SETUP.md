@@ -34,6 +34,7 @@ Without Resend credentials, the local development environment logs development-o
 - The standalone registration flow normalizes the email address and searches the shared `users` collection.
 - If a matching user exists, the new standalone credential is attached to that user's existing ID only after the email is verified.
 - If no matching user exists, registration creates a Paste Vault user record.
+- An authenticated LeetMetric user can also add standalone sign-in from Paste Vault Settings. That flow uses the current session's email from the database (not an email supplied by the browser), creates credentials for the same user ID, and requires email verification before standalone password sign-in is enabled.
 - LeetMetric SSO continues to consume a short-lived, one-time ticket and creates the same Paste Vault session type.
 - Different email addresses are never merged automatically.
 - Both applications must point to the same trusted user identity database for automatic same-user linking. Do not attempt to link accounts solely because a user types an email address into a form.
@@ -42,7 +43,7 @@ Without Resend credentials, the local development environment logs development-o
 
 | Collection | Purpose |
 | --- | --- |
-| `users` | Shared account identity and editable profile fields |
+| `users` | Shared account identity, authentication-provider metadata and isolated Paste Vault `pasteProfile` fields |
 | `paste_credentials` | Salted password hashes, email verification state, token digests and expiry |
 | `integration_tickets` | Hashed one-time LeetMetric launch tickets |
 | `code_pastes` | User-owned snippets and revision history |
