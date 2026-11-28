@@ -71,8 +71,8 @@ export default function Login() {
   }
 
   return (
+      <AuthLayout eyebrow="WELCOME BACK">
       <PageTitle title="Sign in" />
-    <AuthLayout eyebrow="WELCOME BACK">
       <h1 className="auth-title">Sign in to your vault.</h1>
       <p className="auth-description">Pick up where you left off. Your saved code and notes are right where you left them.</p>
       <form className="auth-form" onSubmit={submit}>
