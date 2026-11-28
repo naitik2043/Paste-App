@@ -5,7 +5,7 @@ import * as validation from "./validation.js";
 import { createRateLimiter, isSameOrigin } from "./security.js";
 import { createSharePassword, verifySharePassword } from "./share-security.js";
 
-const { normalizePaste, normalizeShareExpiry, normalizeShareViewLimit, validateImportBatch, LANGUAGES } = validation;
+const { normalizePaste, normalizeShareExpiry, normalizeShareViewLimit, shareViewLimitReached, validateImportBatch, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
 const SESSION_COOKIE = "paste_session";
 const rateLimit = createRateLimiter();
@@ -451,7 +451,7 @@ async function sharePaste(req, res, shareId) {
   if (!paste) return send(res, 404, { error: "This share link has expired or the snippet is no longer shared." });
   const viewLimit = Number(paste.shareViewLimit || 0);
   const viewsUsed = Number(paste.shareViewCount || 0);
-  if (viewLimit > 0 && viewsUsed >= viewLimit) {
+  if (shareViewLimitReached(viewLimit, viewsUsed)) {
     return send(res, 410, { error: "This share link has reached its view limit." });
   }
   if (paste.sharePasswordHash) {
@@ -481,8 +481,7 @@ async function sharePaste(req, res, shareId) {
   if (!accessed) {
     const current = await CodePaste.findOne({ shareId, visibility: "unlisted" })
       .select("shareExpiresAt shareViewLimit shareViewCount").lean();
-    if (current && Number(current.shareViewLimit || 0) > 0 &&
-      Number(current.shareViewCount || 0) >= Number(current.shareViewLimit || 0)) {
+    if (current && shareViewLimitReached(current.shareViewLimit, current.shareViewCount)) {
       return send(res, 410, { error: "This share link has reached its view limit." });
     }
     return send(res, 404, { error: "This share link has expired or the snippet is no longer shared." });
