@@ -1,76 +1,167 @@
 # Paste Vault
 
-A private, searchable code workspace connected to LeetMetric.
+> A private, searchable developer workspace for code snippets, LeetCode solutions, reusable patterns and debugging notes — connected to LeetMetric with secure single sign-on.
 
-Paste Vault captures LeetCode solutions, reusable code patterns and debugging notes so that you can retrieve the approach behind a solution, not only the code.
+[![Live App](https://img.shields.io/badge/Live-Paste%20Vault-477fe0?style=for-the-badge)](https://paste-app-wine.vercel.app)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white)](https://vite.dev/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?style=flat&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## Product capabilities
+Paste Vault helps developers preserve both the implementation and the reasoning behind it. Save accepted solutions, snippets, templates and notes in one place, then retrieve them through full-text search, filters, tags and problem context.
 
-- Private-by-default snippets with explicit unlisted-link sharing.
-- Syntax-aware code rendering for common programming languages.
-- Search by title, code content, problem title, tags and topic.
-- Filter by language, category and pinned status.
-- LeetCode context: problem title, canonical URL, difficulty and topic/pattern.
-- Structured solution journal: approach/intuition, time complexity, space complexity and key takeaways/edge cases.
-- Full snippet editing with automatic version snapshots and restore.
-- Workspace analytics for snippet totals, pinned items, share links, storage and languages.
-- Up to 20 saved revisions per snippet, with restore.
-- Copy-ready detail view and direct problem navigation.
-- Responsive light/dark interface and installable PWA shell.
-- One-time SSO handoff from a signed-in LeetMetric dashboard.
-- Server-side ownership checks for private reads, updates and deletes.
-- Same-origin checks and per-instance rate limits on state-changing API requests.
-- No-index headers for unlisted share pages and non-cacheable private API responses.
-- Data-portable configuration template and explicit secret exclusions in Git.
+## Product highlights
 
-## Integration architecture
+- **Private by default:** new snippets are private and scoped to the signed-in account.
+- **LeetMetric SSO:** a short-lived, one-time launch ticket connects the two applications without sharing JWT signing secrets.
+- **Structured solution journal:** record the problem, language, difficulty, topic, intuition, time and space complexity, key takeaways and edge cases.
+- **Searchable library:** search titles, code, problem titles, topics and tags; filter by language, category and pinned state.
+- **Version history:** edits create revision snapshots; restore an earlier version when needed.
+- **Controlled sharing:** explicitly create an unlisted link, or disable it to return the snippet to private visibility.
+- **Developer-friendly rendering:** syntax highlighting, copy-to-clipboard and direct links to the original problem.
+- **Workspace insights:** track saved snippets, pinned references, active share links, stored content and language distribution.
+- **Responsive interface:** polished desktop/mobile layout with persisted light and dark themes.
+- **Installable shell:** PWA support for a familiar app-like experience.
 
-LeetMetric validates the user's active session and generates a random 256-bit, 90-second one-time launch ticket. Only the ticket's SHA-256 hash is stored in MongoDB. Paste Vault atomically consumes that hash, checks the user's current token version and creates a separate HttpOnly session signed with Paste Vault's own JWT secret. The ticket is delivered in the URL fragment, not the initial HTTP request.
+## Screenshots
 
-Both Vercel projects use the same MongoDB database, but each keeps its own independent JWT signing secret. LeetMetric users and account deletion remain owned by LeetMetric; Paste Vault stores snippets in its own code_pastes collection linked by user ID.
+| Workspace | Snippet view |
+| --- | --- |
+| ![Dashboard](Dashboard.png) | ![Snippet view](%20Paste%20View.png) |
 
-## Environment variables
+## Technology
 
-On Paste-App (Paste Vault), set:
-- MONGODB_URI — same database used by LeetMetric.
-- JWT_SECRET — Paste Vault's own random session-signing secret (minimum 32 characters); it must be different from LeetMetric's secret.
+| Layer | Tools |
+| --- | --- |
+| Frontend | React 18, Vite, React Router |
+| UI | Tailwind CSS, custom responsive CSS, Lucide |
+| Code display | highlight.js |
+| State and feedback | React Context, React Hot Toast |
+| Backend | Vercel serverless API routes |
+| Database | MongoDB with Mongoose |
+| Authentication | LeetMetric SSO handoff, JWT session cookie |
+| Quality | ESLint, Node test runner, GitHub Actions |
 
-On LeetMetric, set:
-- PASTE_APP_URL — https://paste-app-wine.vercel.app
-- MONGODB_URI — same database used by Paste Vault.
-- JWT_SECRET — LeetMetric's own session-signing secret (minimum 32 characters); do not share it with Paste Vault.
+## Application routes
 
-Never commit .env files, connection strings or secrets. Configure them in Vercel Project Settings → Environment Variables, then redeploy both projects.
+| Route | Purpose |
+| --- | --- |
+| `/` | Workspace overview and quick capture |
+| `/pastes` | Searchable snippet library |
+| `/pastes/:id` | Snippet details, editing, sharing and revision history |
+| `/profile` | Account profile, workspace activity and security information |
+| `/share/:shareId` | Publicly reachable unlisted snippet view |
+
+## Architecture and authentication
+
+Paste Vault does not own user passwords. LeetMetric authenticates the user and issues a random 256-bit, short-lived, one-time launch ticket. The ticket is passed in the URL fragment so it is not included in the initial HTTP request. Paste Vault hashes the ticket, atomically consumes it, validates the linked user's current token version, and creates a separate HttpOnly session signed with Paste Vault's own JWT secret.
+
+Both deployments may use the same MongoDB database, but they must use **different JWT signing secrets**. LeetMetric remains the source of truth for account identity and account deletion; Paste Vault stores user-owned snippets in its own collection.
+
+```mermaid
+flowchart LR
+    A[LeetMetric signed-in user] --> B[One-time launch ticket]
+    B --> C[Paste Vault exchange endpoint]
+    C --> D[Validate and consume ticket]
+    D --> E[Paste Vault HttpOnly session]
+    E --> F[Private snippet APIs]
+    F --> G[(MongoDB code_pastes)]
+    H[Unlisted share URL] --> I[Share API]
+    I --> G
+```
 
 ## Local development
 
-Copy `.env.example` to `.env`, configure `MONGODB_URI` and an independent Paste Vault `JWT_SECRET`, then run `npm install` and `npm run dev`. Do not reuse LeetMetric's signing secret. Local development uses non-Secure cookies on localhost; deployed sessions use Secure cookies.
+### Prerequisites
 
-Run the quality checks with npm run check. Authenticated API routes require MongoDB and a valid launch ticket from LeetMetric.
+- Node.js 20 or newer recommended
+- npm
+- MongoDB connection string
+- A LeetMetric environment for issuing valid launch tickets when testing authenticated flows
+
+### Setup
+
+```bash
+git clone https://github.com/naitik2043/Paste-App.git
+cd Paste-App
+npm install
+cp .env.example .env
+```
+
+Set the variables in `.env`:
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_unique_random_secret_at_least_32_characters
+```
+
+Use a unique random `JWT_SECRET` for Paste Vault. Do not copy the LeetMetric JWT secret.
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Run the full quality gate:
+
+```bash
+npm run check
+```
+
+Authenticated API routes require a valid session. Use the LeetMetric dashboard's Code Vault handoff to exercise the complete sign-in flow.
+
+## Deployment configuration
+
+Configure environment variables in the Vercel project settings, not in source control.
+
+**Paste-App / Paste Vault**
+- `MONGODB_URI`: database connection string.
+- `JWT_SECRET`: independent random secret, at least 32 characters.
+
+**LeetMetric**
+- `PASTE_APP_URL`: `https://paste-app-wine.vercel.app`.
+- `MONGODB_URI`: same database used by Paste Vault.
+- `JWT_SECRET`: LeetMetric's separate random session secret.
+
+Redeploy both applications after configuration changes. Never commit `.env`, connection strings, private keys or tokens.
 
 ## API overview
 
-| Method | Route | Purpose |
+| Method | Endpoint | Purpose |
 | --- | --- | --- |
-| POST | /api/auth/exchange | Consume a one-time LeetMetric launch ticket |
-| GET | /api/auth/me | Read current Paste Vault session |
-| POST | /api/auth/logout | Clear Paste Vault session |
-| GET / POST | /api/pastes | Search/list or create snippets |
-| GET / PATCH / DELETE | /api/pastes/:id | Read or manage an owned snippet |
-| POST | /api/pastes/:id/restore | Restore a saved version |
-| GET | /api/stats | Workspace and language insights |
-| GET | /api/share/:shareId | Read an explicitly unlisted snippet |
+| POST | `/api/auth/exchange` | Consume the one-time LeetMetric launch ticket |
+| GET | `/api/auth/me` | Read the current Paste Vault session |
+| POST | `/api/auth/logout` | Clear the session cookie |
+| GET / POST | `/api/pastes` | Search/list or create owned snippets |
+| GET / PATCH / DELETE | `/api/pastes/:id` | Read or manage an owned snippet |
+| POST | `/api/pastes/:id/restore` | Restore a saved revision |
+| GET | `/api/stats` | Workspace and language insights |
+| GET | `/api/share/:shareId` | Read an explicitly unlisted snippet |
 
-## Privacy and safety
+## Security and privacy
 
-- New snippets are private.
-- Anyone with an unlisted link can view that snippet. Unlisted links are not suitable for secrets.
-- Do not paste passwords, API keys, private keys, session tokens or sensitive personal data.
-- Paste Vault does not execute submitted code.
-- Private operations require a valid session and are scoped to the signed-in LeetMetric user.
-- LeetMetric account deletion is designed to remove that user's snippets and unused SSO tickets.
-- Shared recipients can copy content; copied content cannot be recalled.
+- Private API operations enforce server-side ownership checks.
+- State-changing requests apply same-origin checks and rate limiting.
+- Session cookies are HttpOnly; deployed cookies use Secure settings.
+- Private API responses are non-cacheable, and unlisted pages send no-index headers.
+- The application displays code; it does not execute submitted snippets.
+- Unlisted URLs are bearer links: anyone who obtains one can view its snippet. Do not put secrets or credentials in shared snippets.
+- Do not store passwords, API keys, private keys, session tokens or sensitive personal information in Paste Vault.
+
+The current product focuses on a private learning and reference workspace. Features such as public discovery, folder collaboration, password-protected shares, expiring links and client-side zero-knowledge encryption are not represented as available unless implemented and tested.
+
+## Roadmap
+
+- [ ] Optional folders and nested collections
+- [ ] Expiring share links and view limits
+- [ ] Password-protected sharing
+- [ ] Browser-side encryption for a dedicated secure-share mode
+- [ ] Import/export (JSON, Markdown and GitHub Gist)
+- [ ] Multi-file snippets and downloadable archives
+- [ ] Keyboard shortcuts and editor ergonomics
+- [ ] More comprehensive API and browser integration tests
 
 ## License
 
-MIT. See LICENSE.
+MIT. See [LICENSE](LICENSE).
