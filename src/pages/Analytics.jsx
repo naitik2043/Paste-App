@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, BookOpenCheck, Braces, BarChart3, Code2, GitCompareArrows, Layers3, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -19,7 +19,7 @@ export default function Analytics() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/stats", { credentials: "same-origin" });
@@ -31,9 +31,9 @@ export default function Analytics() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const totalDifficulty = useMemo(
     () => (stats?.difficultyBreakdown || []).reduce((sum, row) => sum + row.count, 0),
