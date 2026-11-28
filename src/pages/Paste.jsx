@@ -187,6 +187,10 @@ export default function Paste() {
         throw new Error("This is not a supported Paste Vault JSON backup.");
       }
       if (backup.snippets.length > 2000) throw new Error("A backup can contain up to 2,000 snippets.");
+      const confirmed = window.confirm(
+        "Import " + backup.snippets.length + " snippets? They will be added as new private entries. Existing snippets will not be overwritten and duplicates are not automatically removed."
+      );
+      if (!confirmed) return;
       const known = new Set(folders.map((folder) => folder.name.toLocaleLowerCase("en-US")));
       for (const folder of (backup.folders || [])) {
         const name = String(folder.name || "").trim();
@@ -262,7 +266,7 @@ export default function Paste() {
       <div className="library-workspace">
         <aside className="library-sidebar">
           <FolderManager folders={folders} activeFolderId={folderId} onSelect={changeFolder} onRefresh={refreshFolders} />
-          <div className="backup-note"><FileJson2 size={16} /><p><strong>Portable backup</strong><span>Exports include code and learning notes. Share passwords and active share tokens are never exported.</span></p></div>
+          <div className="backup-note"><FileJson2 size={16} /><p><strong>Portable backup</strong><span>Exports include collections, code and learning notes. They exclude revision history, share passwords and active share tokens.</span></p></div>
         </aside>
         <main className="library-main">
           <div className="library-context-row"><div><p className="eyebrow">CURRENT COLLECTION</p><h2>{activeFolderName}</h2></div><span>{pagination.total || 0} snippets</span></div>
