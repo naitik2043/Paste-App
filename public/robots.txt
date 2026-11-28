@@ -1,2 +1,17 @@
 User-agent: *
-Disallow: /
+Allow: /
+
+# Authenticated workspace and unlisted content are not intended for search indexing.
+Disallow: /dashboard
+Disallow: /pastes
+Disallow: /profile
+Disallow: /settings
+Disallow: /share/
+Disallow: /api/
+Disallow: /login
+Disallow: /signup
+Disallow: /verify-email
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://paste-app-wine.vercel.app/sitemap.xml
