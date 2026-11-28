@@ -82,8 +82,7 @@ flowchart LR
 
 ### Prerequisites
 
-- Node.js 26.x (LTS) and npm
-- npm
+- Node.js 26.x (LTS) with npm 11
 - MongoDB connection string
 - A LeetMetric environment for issuing valid launch tickets when testing authenticated flows
 
