@@ -37,6 +37,7 @@ export default function ViewPaste() {
   const [editForm, setEditForm] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [shareDuration, setShareDuration] = useState("7d");
+  const [shareViewLimit, setShareViewLimit] = useState("0");
   const [sharePassword, setSharePassword] = useState("");
   const [removeSharePassword, setRemoveSharePassword] = useState(false);
   const [folders, setFolders] = useState([]);
@@ -53,6 +54,7 @@ export default function ViewPaste() {
       if (!response.ok) throw new Error(result.error || "Unable to load this snippet.");
       setPaste(result.paste);
       setEditForm(toEditForm(result.paste));
+      setShareViewLimit(String(result.paste.shareViewLimit || 0));
     } catch (error) {
       toast.error(error.message);
       setPaste(null);
@@ -143,6 +145,7 @@ export default function ViewPaste() {
     if (!response.ok) throw new Error(result.error || "Update failed.");
     setPaste(result.paste);
     setEditForm(toEditForm(result.paste));
+    setShareViewLimit(String(result.paste.shareViewLimit || 0));
     return result.paste;
   }
 
@@ -166,7 +169,7 @@ export default function ViewPaste() {
         return toast.error("Share passwords must contain at least 8 characters.");
       }
       const wasAlreadyShared = paste.visibility === "unlisted";
-      const fields = { visibility: "unlisted", shareDuration };
+      const fields = { visibility: "unlisted", shareDuration, shareViewLimit: Number(shareViewLimit) };
       if (sharePassword) fields.sharePassword = sharePassword;
       if (removeSharePassword) fields.removeSharePassword = true;
       const updated = await update(fields);
@@ -262,10 +265,32 @@ export default function ViewPaste() {
             <input id="share-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={sharePassword} onChange={(event) => setSharePassword(event.target.value)} placeholder={paste.hasSharePassword ? "Enter a new password to replace it" : "At least 8 characters"} disabled={removeSharePassword} />
           </label>
           {paste.hasSharePassword && <label className="share-remove-password"><input type="checkbox" checked={removeSharePassword} onChange={(event) => setRemoveSharePassword(event.target.checked)} /> Remove password protection</label>}
-          {paste.visibility === "unlisted" && <small>{paste.shareExpiresAt ? "Current expiry: " + new Date(paste.shareExpiresAt).toLocaleString() : "Current link has no expiry. Set one below to limit access."}</small>}
+          {paste.visibility === "unlisted" && <small>{paste.shareExpiresAt ? "Current expiry: " + new Date(paste.shareExpiresAt).toLocaleString() : "Current link has no expiry."}</small>}
+          {paste.visibility === "unlisted" && Number(paste.shareViewLimit || 0) > 0 && (
+            <p className="share-view-status" role="status">
+              {Number(paste.shareViewCount || 0) >= Number(paste.shareViewLimit)
+                ? "This link has reached its view limit. Increase the limit or choose Unlimited to reactivate it."
+                : "Views used: " + Number(paste.shareViewCount || 0) + " / " + Number(paste.shareViewLimit) +
+                  " · Remaining: " + Math.max(0, Number(paste.shareViewLimit) - Number(paste.shareViewCount || 0))}
+            </p>
+          )}
+          {paste.visibility === "unlisted" && Number(paste.shareViewLimit || 0) === 0 && (
+            <p className="share-view-status">Views used: {Number(paste.shareViewCount || 0)} · No view limit.</p>
+          )}
           {paste.visibility !== "unlisted" && <SecretWarningNotice warnings={shareSecretWarnings} acknowledged={shareSecretAcknowledged} onAcknowledge={setShareSecretAcknowledged} />}
         </div>
         <div className="share-settings-actions">
+          <label htmlFor="share-view-limit">MAXIMUM SUCCESSFUL VIEWS
+            <select id="share-view-limit" value={shareViewLimit} onChange={(event) => setShareViewLimit(event.target.value)}>
+              <option value="0">Unlimited</option>
+              <option value="1">1 view</option>
+              <option value="5">5 views</option>
+              <option value="10">10 views</option>
+              <option value="25">25 views</option>
+              <option value="100">100 views</option>
+            </select>
+          </label>
+          <small className="share-view-help">Only successful content views count. Incorrect password attempts do not consume a view.</small>
           <label htmlFor="share-duration">LINK LIFETIME
             <select id="share-duration" value={shareDuration} onChange={(event) => setShareDuration(event.target.value)}>
               <option value="1d">1 day</option>
