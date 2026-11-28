@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeTags, normalizeProblemUrl, normalizePaste } from "./validation.js";
+import { normalizeTags, normalizeProblemUrl, normalizePaste, normalizeShareExpiry } from "./validation.js";
 
 test("normalizes tags, removes duplicates and limits the collection", () => {
   assert.deepEqual(normalizeTags([" DP ", "dp", "Graphs", "", "arrays"]), ["dp", "graphs", "arrays"]);
@@ -57,4 +57,14 @@ test("stores structured intuition, complexity and review takeaways", () => {
     content: "code",
     approach: "x".repeat(2001)
   }), /2,000 characters/);
+});
+
+
+test("normalizes supported share link expiration policies", () => {
+  const now = 1_800_000_000_000;
+  assert.equal(normalizeShareExpiry("1d", now).getTime(), now + 24 * 60 * 60 * 1000);
+  assert.equal(normalizeShareExpiry("7d", now).getTime(), now + 7 * 24 * 60 * 60 * 1000);
+  assert.equal(normalizeShareExpiry("30d", now).getTime(), now + 30 * 24 * 60 * 60 * 1000);
+  assert.equal(normalizeShareExpiry("never", now), null);
+  assert.throws(() => normalizeShareExpiry("forever-ish", now), /expiration/);
 });
