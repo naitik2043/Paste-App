@@ -138,7 +138,7 @@ async function requireUser(req) {
   try { payload = jwt.verify(token, secret(), { audience: "paste-app-session", issuer: "paste-app" }); }
   catch { return null; }
   if (!payload || !mongoose.isValidObjectId(payload.sub)) return null;
-  const user = await User.findById(payload.sub).select("_id name email tokenVersion bio location avatarUrl website github linkedin authProviders").lean();
+  const user = await User.findById(payload.sub).select("_id name email tokenVersion authProviders pasteProfile").lean();
   if (!user || Number(user.tokenVersion || 0) !== Number(payload.ver || 0)) return null;
   return user;
 }
@@ -260,13 +260,13 @@ async function authExchange(req, res) {
   }).lean();
   if (!ticket) return send(res, 401, { error: "This launch link expired or was already used. Reopen Paste Vault from LeetMetric." });
 
-  const user = await User.findById(ticket.userId).select("_id name email tokenVersion bio location avatarUrl website github linkedin authProviders").lean();
+  const user = await User.findById(ticket.userId).select("_id name email tokenVersion authProviders pasteProfile").lean();
   if (!user || Number(user.tokenVersion || 0) !== Number(ticket.tokenVersion || 0)) {
     return send(res, 401, { error: "Your LeetMetric account is no longer active. Sign in again." });
   }
   await User.updateOne({ _id: user._id }, { $addToSet: { authProviders: "leetmetric" } });
   const refreshedUser = await User.findById(user._id)
-    .select("_id name email tokenVersion bio location avatarUrl website github linkedin authProviders").lean();
+    .select("_id name email tokenVersion authProviders pasteProfile").lean();
   const sessionUser = refreshedUser || user;
   const sessionToken = jwt.sign({
     sub: String(sessionUser._id),
