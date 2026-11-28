@@ -19,6 +19,7 @@ export default function Settings() {
     document.documentElement.classList.toggle("dark", nextTheme === "dark");
     document.documentElement.style.colorScheme = nextTheme;
     localStorage.setItem("paste-theme", nextTheme);
+    window.dispatchEvent(new CustomEvent("paste-theme-change", { detail: { theme: nextTheme } }));
   }
 
   function updatePasswordField(key, value) {
