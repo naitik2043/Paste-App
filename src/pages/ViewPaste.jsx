@@ -4,6 +4,8 @@ import { ArrowLeft, Clipboard, ExternalLink, History, Link2, Pencil, Pin, Rotate
 import toast from "react-hot-toast";
 import CodeBlock from "../components/CodeBlock";
 import PageTitle from "../components/PageTitle";
+import SecretWarningNotice from "../components/SecretWarningNotice";
+import { detectPotentialSecrets } from "../utils/secretDetection.js";
 
 function toEditForm(paste) {
   return {
@@ -33,6 +35,8 @@ export default function ViewPaste() {
   const [editForm, setEditForm] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [shareDuration, setShareDuration] = useState("7d");
+  const [secretAcknowledged, setSecretAcknowledged] = useState(false);
+  const editSecretWarnings = detectPotentialSecrets(editForm?.content || "");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +67,7 @@ export default function ViewPaste() {
 
   function beginEditing() {
     setEditForm(toEditForm(paste));
+    setSecretAcknowledged(false);
     setEditing(true);
   }
 
@@ -70,6 +75,9 @@ export default function ViewPaste() {
     event.preventDefault();
     if (!editForm.title.trim() || !editForm.content.trim()) {
       return toast.error("A title and code are required.");
+    }
+    if (editSecretWarnings.length && !secretAcknowledged) {
+      return toast.error("Review the potential sensitive information warning before saving.");
     }
     setSaving(true);
     try {
@@ -164,6 +172,7 @@ export default function ViewPaste() {
 
   const changeEditField = (key, value) => {
     setEditForm((current) => ({ ...current, [key]: value }));
+    if (key === "content") setSecretAcknowledged(false);
   };
 
   if (loading) return <div className="empty-panel">Loading your snippet…</div>;
@@ -229,6 +238,7 @@ export default function ViewPaste() {
           </div>
           <label htmlFor="edit-content">CODE / NOTES</label>
           <textarea id="edit-content" className="code-input" rows={12} maxLength={1048576} value={editForm.content} onChange={(event) => changeEditField("content", event.target.value)} required />
+          <SecretWarningNotice warnings={editSecretWarnings} acknowledged={secretAcknowledged} onAcknowledge={setSecretAcknowledged} />
           <label htmlFor="edit-approach">APPROACH / INTUITION</label>
           <textarea id="edit-approach" rows={4} maxLength={2000} value={editForm.approach} onChange={(event) => changeEditField("approach", event.target.value)} />
           <div className="form-row">
