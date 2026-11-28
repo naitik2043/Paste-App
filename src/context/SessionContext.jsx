@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import SessionContext from "./sessionContext";
 import { readLaunchTicket } from "../utils/launchTicket";
-
-const SessionContext = createContext(null);
 
 export function SessionProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -72,10 +71,4 @@ export function SessionProvider({ children }) {
   }), [user, loading]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
-}
-
-export function useSession() {
-  const value = useContext(SessionContext);
-  if (!value) throw new Error("useSession must be used inside SessionProvider.");
-  return value;
 }

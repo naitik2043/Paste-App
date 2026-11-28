@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { SessionProvider, useSession } from "./context/SessionContext";
+import { SessionProvider } from "./context/SessionContext";
+import { useSession } from "./context/useSession";
 import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
 import Paste from "./pages/Paste";
