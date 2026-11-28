@@ -13,8 +13,8 @@ const features = [
 
 export default function Landing() {
   return (
+      <div className="landing-page">
       <PageTitle title="A focused code workspace for developers" description="Save programming solutions, reusable patterns and technical notes in a private, searchable developer workspace." noindex={false} />
-    <div className="landing-page">
       <section className="landing-hero">
         <div className="landing-hero-copy">
           <div className="landing-pill"><Sparkles size={14} /> A focused workspace for developers</div>
