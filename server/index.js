@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import * as validation from "./validation.js";
 import { createRateLimiter, isSameOrigin } from "./security.js";
+import { createSharePassword, verifySharePassword } from "./share-security.js";
 
 const { normalizePaste, normalizeShareExpiry, normalizeFolder, validateImportBatch, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
@@ -165,24 +166,10 @@ async function ownedFolderId(userId, folderId) {
   return folder._id;
 }
 
-function passwordHash(password, salt) {
-  return crypto.scryptSync(password, salt, 64).toString("hex");
-}
 function setSharePassword(paste, password) {
-  if (typeof password !== "string" || password.length < 8 || password.length > 128) {
-    const error = new Error("Share passwords must be between 8 and 128 characters.");
-    error.status = 400;
-    throw error;
-  }
-  const salt = crypto.randomBytes(16).toString("hex");
-  paste.sharePasswordSalt = salt;
-  paste.sharePasswordHash = passwordHash(password, salt);
-}
-function verifySharePassword(password, salt, expectedHash) {
-  if (typeof password !== "string" || !salt || !expectedHash || password.length > 128) return false;
-  const actual = Buffer.from(passwordHash(password, salt), "hex");
-  const expected = Buffer.from(expectedHash, "hex");
-  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+  const protectedValue = createSharePassword(password);
+  paste.sharePasswordSalt = protectedValue.salt;
+  paste.sharePasswordHash = protectedValue.hash;
 }
 
 function addHistoryRevision(paste) {
