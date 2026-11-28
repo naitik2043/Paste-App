@@ -1,4 +1,5 @@
 name: Refresh npm lockfile
+# Push-triggered runs require an explicit [lock-sync] commit message.
 
 on:
   push:
