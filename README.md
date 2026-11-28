@@ -28,7 +28,7 @@ Paste Vault helps developers preserve both the implementation and the reasoning 
 
 | Workspace | Snippet view |
 | --- | --- |
-| ![Dashboard](Dashboard.png) | ![Snippet view](%20Paste%20View.png) |
+| ![Dashboard](Dashboard.png) | ![Snippet view](Paste%20View.png) |
 
 ## Technology
 
