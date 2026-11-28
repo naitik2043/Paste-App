@@ -209,7 +209,7 @@ export default function Paste() {
         if (snippetBytes > MAX_IMPORT_BATCH_BYTES) {
           throw new Error("Snippet " + (index + 1) + " is too large to import in a safe request.");
         }
-        if (currentBatch.length && currentBatchBytes + snippetBytes > MAX_IMPORT_BATCH_BYTES) {
+        if (currentBatch.length && (currentBatch.length >= 10 || currentBatchBytes + snippetBytes > MAX_IMPORT_BATCH_BYTES)) {
           batches.push(currentBatch);
           currentBatch = [];
           currentBatchBytes = 0;
