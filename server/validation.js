@@ -6,9 +6,10 @@ function invalid(message) {
   return error;
 }
 export const LANGUAGES = new Set([
-  "text", "javascript", "typescript", "jsx", "tsx", "python", "java", "cpp",
-  "c", "csharp", "go", "rust", "sql", "json", "html", "css", "bash", "markdown",
-  "yaml", "xml", "dockerfile", "php", "ruby", "kotlin", "swift"
+  "text", "javascript", "typescript", "jsx", "tsx", "python", "java", "cpp", "c",
+  "csharp", "go", "rust", "sql", "json", "html", "css", "bash", "markdown",
+  "yaml", "xml", "dockerfile", "php", "ruby", "kotlin", "swift", "r", "dart",
+  "scala", "perl", "lua", "powershell", "graphql"
 ]);
 
 export function normalizeTags(input) {
