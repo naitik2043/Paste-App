@@ -515,12 +515,16 @@ async function exportVault(req, res) {
     folderName: item.folderId ? folderNames.get(String(item.folderId)) || "" : "",
     isPinned: Boolean(item.isPinned)
   }));
-  return send(res, 200, {
+  const payload = {
     format: "paste-vault-export", version: 1, exportedAt: new Date().toISOString(),
     folders: page === 1 ? folders.map(({ name, color }) => ({ name, color })) : undefined,
     snippets,
     pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) }
-  });
+  };
+  if (Buffer.byteLength(JSON.stringify(payload), "utf8") > 3.5 * 1024 * 1024) {
+    return send(res, 413, { error: "This export page is too large. Retry with a smaller page size." });
+  }
+  return send(res, 200, payload);
 }
 
 async function importVault(req, res) {
@@ -528,7 +532,11 @@ async function importVault(req, res) {
   const user = await requireUser(req);
   if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
   try {
-    const batch = validateImportBatch(bodyOf(req));
+    const importBody = bodyOf(req);
+    if (Buffer.byteLength(JSON.stringify(importBody), "utf8") > 3.5 * 1024 * 1024) {
+      return send(res, 413, { error: "Import batches must be smaller than 3.5 MB. Retry with fewer snippets." });
+    }
+    const batch = validateImportBatch(importBody);
     const existingCount = await CodePaste.countDocuments({ userId: user._id });
     if (existingCount + batch.length > 2000) {
       return send(res, 409, { error: "This import would exceed the 2,000-snippet vault limit." });
