@@ -68,8 +68,9 @@ export default function Signup() {
 
   return (
     <AuthLayout eyebrow="CREATE YOUR WORKSPACE">
+      <PageTitle title="Create your account" />
       <h1 className="auth-title">Make space for better thinking.</h1>
-      <p className="auth-description">Create your independent Paste Vault account. You can connect the same identity to LeetMetric later.</p>
+      <p className="auth-description">Create your independent Paste Vault account. LeetMetric sign-in can use the same workspace when both services share the same user identity.</p>
       <form className="auth-form" onSubmit={submit}>
         <label className="auth-field"><span>Display name</span><span className="auth-input-wrap"><UserRound size={17} /><input type="text" name="name" autoComplete="name" placeholder="How should we call you?" value={form.name} onChange={(event) => update("name", event.target.value)} maxLength={60} required /></span></label>
         <label className="auth-field"><span>Email address</span><span className="auth-input-wrap"><Mail size={17} /><input type="email" name="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={(event) => update("email", event.target.value)} maxLength={254} required /></span></label>
