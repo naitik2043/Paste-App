@@ -31,13 +31,15 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Apply non-breaking dependency security fixes
+        run: npm audit fix --ignore-scripts --no-fund
       - name: Export normalized lockfile for repository maintenance
         uses: actions/upload-artifact@v4
         with:
           name: normalized-package-lock
           path: package-lock.json
           if-no-files-found: error
-      - name: Audit production dependencies
+      - name: Verify production dependency security
         run: npm audit --omit=dev --audit-level=high
       - name: Lint, test and build
         run: npm run check
