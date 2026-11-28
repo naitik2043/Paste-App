@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Braces, Check, Clock3, Code2, Database, FolderOpen, GitBranch, LockKeyhole, ShieldCheck, Sparkles, TerminalSquare } from "lucide-react";
+import PageTitle from "../components/PageTitle";
 
 const features = [
   { icon: Code2, title: "Code that stays organized", copy: "Keep solutions, reusable snippets, templates and technical notes in one searchable workspace." },
@@ -12,6 +13,7 @@ const features = [
 
 export default function Landing() {
   return (
+      <PageTitle title="A focused code workspace for developers" description="Save programming solutions, reusable patterns and technical notes in a private, searchable developer workspace." noindex={false} />
     <div className="landing-page">
       <section className="landing-hero">
         <div className="landing-hero-copy">
