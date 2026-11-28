@@ -299,6 +299,77 @@ export function createStandaloneAuthHandlers({ User, requireUser, send, bodyOf, 
     }
   }
 
+  async function linkStandalone(req, res) {
+    if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
+    const user = await requireUser(req);
+    if (!user) return send(res, 401, { error: "Sign in through LeetMetric before linking standalone email access." });
+
+    try {
+      const providers = Array.isArray(user.authProviders) ? user.authProviders : [];
+      if (!providers.includes("leetmetric")) {
+        return send(res, 409, { error: "This account does not have a LeetMetric sign-in method to link." });
+      }
+
+      const email = normalizeEmail(user.email);
+      if (!EMAIL_PATTERN.test(email) || email.length > 254) {
+        return send(res, 409, { error: "Your LeetMetric account does not have a valid email address. Add and verify an email in LeetMetric first." });
+      }
+      validatePassword(bodyOf(req).password);
+
+      const existingForUser = await Credential.findOne({ userId: user._id }).select("emailVerifiedAt").lean();
+      if (existingForUser) {
+        return send(res, 409, {
+          error: existingForUser.emailVerifiedAt
+            ? "Standalone email sign-in is already linked to this account."
+            : "A standalone sign-in setup is already pending. Resend its verification email from this page."
+        });
+      }
+
+      const existingForEmail = await Credential.findOne({ emailNormalized: email }).select("userId").lean();
+      if (existingForEmail && String(existingForEmail.userId) !== String(user._id)) {
+        return send(res, 409, { error: "This email is already linked to another Paste Vault account. Accounts are never merged automatically." });
+      }
+
+      const passwordValue = hashPassword(bodyOf(req).password);
+      const verificationToken = createAuthToken();
+      try {
+        await Credential.create({
+          userId: user._id,
+          emailNormalized: email,
+          passwordSalt: passwordValue.salt,
+          passwordHash: passwordValue.hash,
+          verificationTokenHash: hashAuthToken(verificationToken),
+          verificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        });
+      } catch (error) {
+        if (error.code === 11000) {
+          return send(res, 409, { error: "A standalone sign-in method already exists for this email or account." });
+        }
+        throw error;
+      }
+
+      try {
+        const delivery = await deliverVerification(req, email, verificationToken);
+        return send(res, 201, {
+          ok: true,
+          emailSent: delivery.delivered,
+          ...(delivery.developmentOnly ? { verificationUrl: createActionUrl(req, "/verify-email", verificationToken) } : {}),
+          message: delivery.delivered
+            ? "A verification link has been sent to your LeetMetric account email. Complete verification to enable standalone sign-in."
+            : "Standalone access is pending email verification. Use the development link below."
+        });
+      } catch (error) {
+        return send(res, Number(error.status) || 503, {
+          error: error.message,
+          pendingVerification: true,
+          code: error.code || "EMAIL_DELIVERY_UNAVAILABLE"
+        });
+      }
+    } catch (error) {
+      return send(res, Number(error.status) || 400, { error: error.message || "Unable to link standalone sign-in." });
+    }
+  }
+
   async function login(req, res) {
     if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
     const body = bodyOf(req);
@@ -474,6 +545,7 @@ export function createStandaloneAuthHandlers({ User, requireUser, send, bodyOf, 
 
   return {
     register,
+    linkStandalone,
     login,
     verifyEmail,
     resendVerification,
