@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, CircleHelp, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, CircleHelp, LockKeyhole, ShieldCheck } from "lucide-react";
 
 const questions = [
   ["Do I need a LeetMetric account?", "No. You can create and use a Paste Vault account directly with your email address. LeetMetric single sign-on remains available for existing integrated users."],
