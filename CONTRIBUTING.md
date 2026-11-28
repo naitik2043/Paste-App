@@ -18,6 +18,12 @@ Thanks for helping improve Paste Vault. Contributions should preserve the produc
 
 Never commit `.env`, credentials, database exports or real user snippets.
 
+## Dependency changes
+
+When adding, removing or updating a dependency, update both `package.json` and the committed `package-lock.json` with Node.js 26.x and npm 11. Commit both files together. Do not edit the lockfile manually. CI uses `npm ci` without regenerating the lockfile, so an out-of-sync dependency manifest is rejected.
+
+Dependabot groups compatible minor and patch updates. Major version upgrades are intentionally held for manual compatibility review.
+
 ## Before opening a pull request
 
 Run the same quality gate used in CI:
