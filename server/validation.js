@@ -79,3 +79,18 @@ export function normalizePaste(input, current) {
   if (result.keyTakeaway.length > 1000) throw invalid("Key takeaway must be 1,000 characters or fewer.");
   return result;
 }
+
+
+const SHARE_DURATIONS = Object.freeze({
+  "1d": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+  "30d": 30 * 24 * 60 * 60 * 1000
+});
+
+export function normalizeShareExpiry(duration = "7d", now = Date.now()) {
+  const selected = String(duration || "7d");
+  if (selected === "never") return null;
+  const lifetime = SHARE_DURATIONS[selected];
+  if (!lifetime) throw invalid("Choose a valid share link expiration.");
+  return new Date(now + lifetime);
+}
