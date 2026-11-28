@@ -333,7 +333,7 @@ async function pasteCollection(req, res) {
         shareExpiresAt,
         folderId
       });
-      if (requestBody.sharePassword) setSharePassword(paste, requestBody.sharePassword);
+      if (data.visibility === "unlisted" && requestBody.sharePassword) setSharePassword(paste, requestBody.sharePassword);
       await paste.save();
       return send(res, 201, { paste: publicPaste(paste, true) });
     } catch (error) { return makeError(res, error, "Unable to save this snippet."); }
