@@ -2,16 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getSnippetFilename } from "./downloadSnippet.js";
 
-test("creates safe filenames with language-specific extensions", () => {
-  assert.equal(getSnippetFilename("Two Sum / Hash Map", "cpp"), "two-sum-hash-map.cpp");
-  assert.equal(getSnippetFilename("React Component", "tsx"), "react-component.tsx");
-  assert.equal(getSnippetFilename("SQL joins", "sql"), "sql-joins.sql");
-  assert.equal(getSnippetFilename("", "unknown"), "snippet.txt");
+test("creates a safe filename with the language-specific extension", () => {
+  assert.equal(getSnippetFilename("  Graph / BFS!! ", "cpp"), "graph-bfs.cpp");
+  assert.equal(getSnippetFilename("Two Sum", "python"), "two-sum.py");
 });
 
-test("bounds and sanitizes filenames", () => {
-  const result = getSnippetFilename("A".repeat(100), "python");
-  assert.equal(result.length, 67);
-  assert.match(result, /\.py$/);
-  assert.equal(getSnippetFilename("../../credentials", "text"), "credentials.txt");
+test("uses a safe fallback for missing titles and unknown languages", () => {
+  assert.equal(getSnippetFilename("", "unknown-language"), "snippet.txt");
+  assert.equal(getSnippetFilename("My Notes", "text"), "my-notes.txt");
+});
+
+test("limits generated slugs and strips unsafe punctuation", () => {
+  const name = getSnippetFilename("A".repeat(100) + "../bad", "javascript");
+  assert.equal(name.length, 67);
+  assert.match(name, /^[a-z0-9-]+\.js$/);
 });

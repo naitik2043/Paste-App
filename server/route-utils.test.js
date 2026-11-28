@@ -2,31 +2,27 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRouteHandler } from "./route-utils.js";
 
-test("maps a static API route while preserving query parameters", () => {
-  let received;
-  const handler = createRouteHandler((req) => { received = req.query; }, ["pastes"]);
-  const req = { query: { limit: "20" } };
+test("maps a static API route into request path segments", async () => {
+  const req = { query: { existing: "value" } };
+  const expected = { ok: true };
+  const handler = createRouteHandler((request) => {
+    assert.deepEqual(request.query, { existing: "value", path: ["pastes", "123"] });
+    return expected;
+  }, ["pastes", "123"]);
 
-  handler(req, {});
-
-  assert.deepEqual(received, { limit: "20", path: ["pastes"] });
+  assert.equal(await handler(req, {}), expected);
 });
 
-test("resolves dynamic route parameters from Vercel query values", () => {
-  let received;
-  const handler = createRouteHandler(
-    (req) => { received = req.query.path; },
-    (req) => ["pastes", String(req.query.id || "")]
-  );
+test("resolves route segments from the incoming request", () => {
+  const req = { query: { id: "abc" } };
+  const handler = createRouteHandler((request) => request.query.path, (request) => [
+    "pastes", request.query.id, "", null
+  ]);
 
-  handler({ query: { id: "507f1f77bcf86cd799439011" } }, {});
-
-  assert.deepEqual(received, ["pastes", "507f1f77bcf86cd799439011"]);
+  assert.deepEqual(handler(req, {}), ["pastes", "abc"]);
 });
 
-test("normalizes a string route and discards empty path segments", () => {
-  let received;
-  createRouteHandler((req) => { received = req.query.path; }, "stats")({ query: null }, {});
-  assert.deepEqual(received, ["stats"]);
-  assert.throws(() => createRouteHandler(null, ["pastes"]), /handler function/);
+test("rejects invalid handler and path configuration", () => {
+  assert.throws(() => createRouteHandler(null, "pastes"), /handler function/);
+  assert.throws(() => createRouteHandler(() => {}, 42), /route path/);
 });

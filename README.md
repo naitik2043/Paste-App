@@ -3,12 +3,13 @@
 > A private, searchable developer workspace for code snippets, LeetCode solutions, reusable patterns and debugging notes — connected to LeetMetric with secure single sign-on.
 
 [![Live App](https://img.shields.io/badge/Live-Paste%20Vault-477fe0?style=for-the-badge)](https://paste-app-wine.vercel.app)
+[![CI](https://github.com/naitik2043/Paste-App/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/naitik2043/Paste-App/actions/workflows/quality.yml)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white)](https://vite.dev/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?style=flat&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Paste Vault helps developers preserve both the implementation and the reasoning behind it. Save accepted solutions, snippets, templates and notes in one place, then retrieve them through full-text search, filters, tags and problem context.
+Paste Vault helps developers preserve both the implementation and the reasoning behind it. Save accepted solutions, snippets, templates and notes in one place, then retrieve them through keyword search, filters, tags and problem context.
 
 ## Product highlights
 
@@ -81,7 +82,7 @@ flowchart LR
 
 ### Prerequisites
 
-- Node.js 20 or newer recommended
+- Node.js 26.x (LTS) and npm
 - npm
 - MongoDB connection string
 - A LeetMetric environment for issuing valid launch tickets when testing authenticated flows
@@ -91,7 +92,7 @@ flowchart LR
 ```bash
 git clone https://github.com/naitik2043/Paste-App.git
 cd Paste-App
-npm install
+npm ci
 cp .env.example .env
 ```
 
@@ -116,11 +117,13 @@ Run the full quality gate:
 npm run check
 ```
 
+The quality gate runs ESLint, frontend and API syntax checks, Node.js unit tests, and a production Vite build. The same command runs in GitHub Actions on every push and pull request. Production dependencies are also checked with `npm audit` in CI.
+
 Authenticated API routes require a valid session. Use the LeetMetric dashboard's Code Vault handoff to exercise the complete sign-in flow.
 
 ## Deployment configuration
 
-Configure environment variables in the Vercel project settings, not in source control.
+Configure environment variables in the Vercel project settings, not in source control. The project pins Node.js `26.x` through `package.json` so CI and Vercel use the same supported runtime.
 
 **Paste-App / Paste Vault**
 - `MONGODB_URI`: database connection string.
@@ -149,7 +152,7 @@ Redeploy both applications after configuration changes. Never commit `.env`, con
 ## Security and privacy
 
 - Private API operations enforce server-side ownership checks.
-- State-changing requests apply same-origin checks and rate limiting.
+- State-changing requests apply same-origin checks and process-local rate limiting. The in-memory limiter is best-effort per serverless instance, not a distributed abuse-prevention service.
 - Session cookies are HttpOnly; deployed cookies use Secure settings.
 - Private API responses are non-cacheable, and unlisted pages send no-index headers.
 - The application displays code; it does not execute submitted snippets.
@@ -159,6 +162,10 @@ Redeploy both applications after configuration changes. Never commit `.env`, con
 - Do not store passwords, API keys, private keys, session tokens or sensitive personal information in Paste Vault.
 
 The current product focuses on a private, single-owner learning and reference workspace. Public snippet discovery, real-time collaborative editing and client-side zero-knowledge encryption are not currently part of the product.
+
+## Quality and verification
+
+Run `npm run check` before submitting changes. The suite includes validation, share-password hashing, same-origin and rate-limit behavior, route mapping, launch-ticket parsing, secret-warning patterns, and snippet filename generation. CI also runs a production-dependency vulnerability audit.
 
 ## Roadmap
 
