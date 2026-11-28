@@ -256,10 +256,10 @@ export default function ViewPaste() {
         <div className="share-settings-copy">
           <p className="eyebrow">CONTROLLED SHARING</p>
           <h2>Unlisted share link</h2>
-          <p>{paste.visibility === "unlisted" ? "Your snippet is accessible to anyone with its link. Update its expiry or disable the link at any time." : "Create a read-only link when you need to share this snippet. It stays private until you enable sharing."}</p>
+          <p>{paste.visibility === "unlisted" ? (paste.shareExpiresAt && new Date(paste.shareExpiresAt).getTime() <= Date.now() ? "This link has expired. Update the share settings to reactivate it." : "Your snippet is available to anyone with the active link. Update its protection or disable the link at any time.") : "Create a read-only link when you need to share this snippet. It stays private until you enable sharing."}</p>
           {paste.visibility === "unlisted" && <p className="share-security-status">{paste.hasSharePassword ? "Password protection is enabled." : "Anyone with the active link can view this snippet."}</p>}
           <label className="share-password-field" htmlFor="share-password">{paste.hasSharePassword ? "CHANGE SHARE PASSWORD" : "OPTIONAL SHARE PASSWORD"}
-            <input id="share-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={sharePassword} onChange={(event) => setSharePassword(event.target.value)} placeholder={paste.hasSharePassword ? "Enter a new password to replace it" : "At least 8 characters"} />
+            <input id="share-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={sharePassword} onChange={(event) => setSharePassword(event.target.value)} placeholder={paste.hasSharePassword ? "Enter a new password to replace it" : "At least 8 characters"} disabled={removeSharePassword} />
           </label>
           {paste.hasSharePassword && <label className="share-remove-password"><input type="checkbox" checked={removeSharePassword} onChange={(event) => setRemoveSharePassword(event.target.checked)} /> Remove password protection</label>}
           {paste.visibility === "unlisted" && <small>{paste.shareExpiresAt ? "Current expiry: " + new Date(paste.shareExpiresAt).toLocaleString() : "Current link has no expiry. Set one below to limit access."}</small>}
@@ -274,7 +274,7 @@ export default function ViewPaste() {
               <option value="never">No expiration</option>
             </select>
           </label>
-          <button className="primary-button" type="button" onClick={share}><Share2 size={15} /> {paste.visibility === "unlisted" ? "Update expiry" : "Create share link"}</button>
+          <button className="primary-button" type="button" onClick={share}><Share2 size={15} /> {paste.visibility === "unlisted" ? "Update share settings" : "Create share link"}</button>
           {paste.visibility === "unlisted" && <button className="secondary-button" type="button" onClick={copyShareLink}><Link2 size={14} /> Copy link</button>}
           {paste.visibility === "unlisted" && <button className="secondary-button" type="button" onClick={disableShare}>Disable link</button>}
         </div>
