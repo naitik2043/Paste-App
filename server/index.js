@@ -376,7 +376,7 @@ async function stats(req, res) {
   const [total, pinned, unlisted, bytes, languages, recent] = await Promise.all([
     CodePaste.countDocuments({ userId: user._id }),
     CodePaste.countDocuments({ userId: user._id, isPinned: true }),
-    CodePaste.countDocuments({ userId: user._id, visibility: "unlisted" }),
+    CodePaste.countDocuments({ userId: user._id, visibility: "unlisted", $or: [{ shareExpiresAt: null }, { shareExpiresAt: { $exists: false } }, { shareExpiresAt: { $gt: new Date() } }] }),
     CodePaste.aggregate([{ $match: { userId: user._id } }, { $group: { _id: null, total: { $sum: { $strLenBytes: "$content" } } } }]),
     CodePaste.aggregate([{ $match: { userId: user._id } }, { $group: { _id: "$language", count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 5 }]),
     CodePaste.find({ userId: user._id }).sort({ updatedAt: -1 }).limit(5).lean()
