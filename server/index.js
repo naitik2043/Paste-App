@@ -666,7 +666,7 @@ export default async function handler(req, res) {
     const isImportRequest = parts.join("/") === "import";
     const authAction = parts[0] === "auth" ? parts[1] : "";
     const authLimits = {
-      register: 5, login: 10, verify: 10,
+      register: 5, "link-email": 3, login: 10, verify: 10,
       "resend-verification": 3, "forgot-password": 5, "reset-password": 5
     };
     const isStandaloneAuth = Object.prototype.hasOwnProperty.call(authLimits, authAction);
@@ -687,6 +687,7 @@ export default async function handler(req, res) {
     if (parts.join("/") === "auth/me") return authMe(req, res);
     if (parts.join("/") === "auth/logout") return authLogout(req, res);
     if (parts.join("/") === "auth/register") return standaloneAuth.register(req, res);
+    if (parts.join("/") === "auth/link-email") return standaloneAuth.linkStandalone(req, res);
     if (parts.join("/") === "auth/login") return standaloneAuth.login(req, res);
     if (parts.join("/") === "auth/verify") return standaloneAuth.verifyEmail(req, res);
     if (parts.join("/") === "auth/resend-verification") return standaloneAuth.resendVerification(req, res);
