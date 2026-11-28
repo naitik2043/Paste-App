@@ -14,8 +14,8 @@ const questions = [
 
 export default function Help() {
   return (
+      <div className="public-content-page">
       <PageTitle title="Help centre" description="Answers about Paste Vault accounts, private snippets, sharing, account recovery and LeetMetric integration." noindex={false} />
-    <div className="public-content-page">
       <section className="public-page-hero compact"><div className="landing-pill"><CircleHelp size={14} /> HELP CENTRE</div><h1>Questions, <span>answered.</span></h1><p>Quick guidance for setting up your account, protecting your snippets and getting the most from your workspace.</p></section>
       <div className="help-layout">
         <div className="help-faq-list">{questions.map(([question, answer], index) => <article className="help-faq" key={question}><span>0{index + 1}</span><div><h2>{question}</h2><p>{answer}</p></div></article>)}</div>
