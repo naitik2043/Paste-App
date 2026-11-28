@@ -9,7 +9,7 @@ import FolderManager from "../components/FolderManager";
 const EXPORT_FORMAT = "paste-vault-export";
 const EXPORT_VERSION = 1;
 const EXPORT_PAGE_SIZE = 3;
-const IMPORT_BATCH_SIZE = 3;
+const MAX_IMPORT_BATCH_BYTES = 2.5 * 1024 * 1024;
 
 async function readJsonResponse(response, fallback) {
   const result = await response.json().catch(() => ({}));
@@ -109,20 +109,52 @@ export default function Paste() {
   async function exportVault() {
     setExporting(true);
     try {
-      const firstResponse = await fetch("/api/export?page=1&limit=" + EXPORT_PAGE_SIZE, { credentials: "same-origin" });
-      const first = await readJsonResponse(firstResponse, "Unable to export your vault.");
-      const allSnippets = [...(first.snippets || [])];
-      const foldersToExport = first.folders || [];
-      const totalPages = first.pagination?.pages || 1;
-      for (let current = 2; current <= totalPages; current += 1) {
-        const response = await fetch("/api/export?page=" + current + "&limit=" + EXPORT_PAGE_SIZE, { credentials: "same-origin" });
-        const result = await readJsonResponse(response, "Export stopped while reading page " + current + ".");
-        allSnippets.push(...(result.snippets || []));
+      let pageSize = EXPORT_PAGE_SIZE;
+      let allSnippets = [];
+      let foldersToExport = [];
+      let exportedAt = new Date().toISOString();
+      let exportComplete = false;
+
+      while (!exportComplete) {
+        allSnippets = [];
+        foldersToExport = [];
+        let retryWithSmallerPages = false;
+        const firstResponse = await fetch("/api/export?page=1&limit=" + pageSize, { credentials: "same-origin" });
+        const first = await firstResponse.json().catch(() => ({}));
+        if (firstResponse.status === 413) {
+          pageSize = Math.floor(pageSize / 2);
+          if (pageSize < 1) throw new Error("A snippet is too large to fit in a single JSON export response.");
+          continue;
+        }
+        if (!firstResponse.ok) throw new Error(first.error || "Unable to export your vault.");
+        allSnippets.push(...(first.snippets || []));
+        foldersToExport = first.folders || [];
+        exportedAt = first.exportedAt || exportedAt;
+        const totalPages = first.pagination?.pages || 1;
+
+        for (let current = 2; current <= totalPages; current += 1) {
+          const response = await fetch("/api/export?page=" + current + "&limit=" + pageSize, { credentials: "same-origin" });
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 413) {
+            retryWithSmallerPages = true;
+            break;
+          }
+          if (!response.ok) throw new Error(result.error || "Export stopped while reading page " + current + ".");
+          allSnippets.push(...(result.snippets || []));
+        }
+
+        if (retryWithSmallerPages) {
+          pageSize = Math.floor(pageSize / 2);
+          if (pageSize < 1) throw new Error("A snippet is too large to fit in a single JSON export response.");
+          continue;
+        }
+        exportComplete = true;
       }
+
       const payload = {
         format: EXPORT_FORMAT,
         version: EXPORT_VERSION,
-        exportedAt: first.exportedAt || new Date().toISOString(),
+        exportedAt,
         folders: foldersToExport,
         snippets: allSnippets
       };
@@ -168,9 +200,28 @@ export default function Paste() {
         if (!response.ok && !(response.status === 409 && /conflicting record/i.test(result.error || ""))) throw new Error(result.error || "Unable to restore collections.");
         known.add(name.toLocaleLowerCase("en-US"));
       }
-      for (let offset = 0; offset < backup.snippets.length; offset += IMPORT_BATCH_SIZE) {
-        const batch = backup.snippets.slice(offset, offset + IMPORT_BATCH_SIZE);
-        setImportProgress("Importing " + Math.min(offset + batch.length, backup.snippets.length) + " of " + backup.snippets.length + "…");
+      const batches = [];
+      let currentBatch = [];
+      let currentBatchBytes = 0;
+      for (let index = 0; index < backup.snippets.length; index += 1) {
+        const snippet = backup.snippets[index];
+        const snippetBytes = new TextEncoder().encode(JSON.stringify(snippet)).length;
+        if (snippetBytes > MAX_IMPORT_BATCH_BYTES) {
+          throw new Error("Snippet " + (index + 1) + " is too large to import in a safe request.");
+        }
+        if (currentBatch.length && currentBatchBytes + snippetBytes > MAX_IMPORT_BATCH_BYTES) {
+          batches.push(currentBatch);
+          currentBatch = [];
+          currentBatchBytes = 0;
+        }
+        currentBatch.push(snippet);
+        currentBatchBytes += snippetBytes;
+      }
+      if (currentBatch.length) batches.push(currentBatch);
+
+      for (let index = 0; index < batches.length; index += 1) {
+        const batch = batches[index];
+        setImportProgress("Importing batch " + (index + 1) + " of " + batches.length + " · " + imported + " of " + backup.snippets.length + " snippets…");
         const response = await fetch("/api/import", {
           method: "POST", credentials: "same-origin",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
