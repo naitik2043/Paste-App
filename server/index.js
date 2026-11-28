@@ -466,6 +466,8 @@ async function folderCollection(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
   try {
     const folder = validation.normalizeFolder(bodyOf(req));
+    const duplicate = await Folder.findOne({ userId: user._id, nameKey: folder.nameKey }).select("_id").lean();
+    if (duplicate) return send(res, 409, { error: "A collection with that name already exists." });
     const count = await Folder.countDocuments({ userId: user._id });
     if (count >= 100) return send(res, 409, { error: "You can create up to 100 folders." });
     const created = await Folder.create({ ...folder, userId: user._id });
@@ -482,6 +484,10 @@ async function folderItem(req, res, id) {
   if (req.method === "PATCH") {
     try {
       const normalized = validation.normalizeFolder(bodyOf(req));
+      const duplicate = await Folder.findOne({
+        userId: user._id, nameKey: normalized.nameKey, _id: { $ne: folder._id }
+      }).select("_id").lean();
+      if (duplicate) return send(res, 409, { error: "A collection with that name already exists." });
       Object.assign(folder, normalized);
       await folder.save();
       return send(res, 200, { folder: { id: String(folder._id), name: folder.name, color: folder.color } });
