@@ -24,7 +24,7 @@ Both methods resolve to the same user identity when the verified email matches a
 
 - **Private by default:** new snippets are private and scoped to the signed-in account.
 - **Standalone authentication:** registration, email verification, sign-in, forgot/reset password, password changes and secure HttpOnly sessions.
-- **LeetMetric SSO:** one-time, short-lived launch tickets connect the two applications without sharing JWT signing secrets.
+- **LeetMetric SSO:** one-time, short-lived launch tickets connect the two applications without sharing JWT signing secrets. LeetMetric users can add standalone email/password sign-in from Settings after verifying their account email.
 - **Editable developer profile:** update display name, bio, location, avatar URL, website, GitHub and LinkedIn details.
 - **Account settings:** manage sign-in methods, password security, light/dark theme and sign-out.
 - **Structured solution journal:** record the problem, language, difficulty, topic, intuition, time and space complexity, key takeaways and edge cases.
@@ -92,6 +92,7 @@ Both methods resolve to the same user identity when the verified email matches a
 | Endpoint | Purpose |
 | --- | --- |
 | `/api/auth/register` | Create an account and send verification email |
+| `/api/auth/link-email` | Add standalone email/password sign-in to an authenticated LeetMetric identity |
 | `/api/auth/login` | Sign in with verified email credentials |
 | `/api/auth/verify` | Consume a one-time email verification token |
 | `/api/auth/resend-verification` | Request another verification email |
@@ -129,7 +130,7 @@ flowchart TD
 
 ### Account and data model
 
-- `users`: shared application identity. Paste Vault adds profile fields and authentication-provider metadata without storing a standalone password in this document.
+- `users`: shared application identity and authentication-provider metadata. Paste Vault profile fields live in an isolated `pasteProfile` subdocument so editing this profile does not overwrite LeetMetric's account profile.
 - `paste_credentials`: standalone email credential, per-account password salt/hash, verification state and one-time token digests.
 - `integration_tickets`: hashed, expiring, single-use LeetMetric launch tickets.
 - `code_pastes`, `paste_folders`: user-owned snippets, revisions and collections.
