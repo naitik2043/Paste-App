@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider, useLocation } from "react-router-dom";
 import { SessionProvider } from "./context/SessionContext";
 import { useSession } from "./context/useSession";
 import AppShell from "./components/AppShell";
