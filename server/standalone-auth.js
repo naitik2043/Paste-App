@@ -141,10 +141,13 @@ function baseUrlForRequest(req) {
   const configured = String(process.env.PUBLIC_APP_URL || "").trim();
   if (configured) {
     const parsed = new URL(configured);
-    if (process.env.NODE_ENV === "production" && parsed.protocol !== "https:") {
+    if ((process.env.NODE_ENV === "production" || process.env.VERCEL === "1") && parsed.protocol !== "https:") {
       throw authError("PUBLIC_APP_URL must use HTTPS in production.", 503);
     }
     return parsed.origin;
+  }
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+    throw authError("Set PUBLIC_APP_URL to the canonical HTTPS application URL before sending account emails.", 503);
   }
 
   const origin = String(req.headers?.origin || "").trim();
