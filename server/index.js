@@ -2,10 +2,13 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import * as validation from "./validation.js";
+import { createRateLimiter, isSameOrigin } from "./security.js";
 
 const { normalizePaste, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
 const SESSION_COOKIE = "paste_session";
+const rateLimit = createRateLimiter();
+const MUTATING_METHODS = new Set(["POST", "PATCH", "DELETE"]);
 
 const userSchema = new Schema({ tokenVersion: { type: Number, default: 0 } }, {
   collection: "users", strict: false, versionKey: false
@@ -98,11 +101,13 @@ function readCookie(req) {
   return null;
 }
 function setCookie(res, token) {
+  const secure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   res.setHeader("Set-Cookie", SESSION_COOKIE + "=" + encodeURIComponent(token) +
-    "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800");
+    `; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${secure ? "; Secure" : ""}`);
 }
 function clearCookie(res) {
-  res.setHeader("Set-Cookie", SESSION_COOKIE + "=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
+  const secure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+  res.setHeader("Set-Cookie", SESSION_COOKIE + `=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? "; Secure" : ""}`);
 }
 function bodyOf(req) {
   if (req.body && typeof req.body === "object") return req.body;
@@ -332,6 +337,7 @@ async function pasteItem(req, res, id, action) {
   } catch (error) { return makeError(res, error, "Unable to update this snippet."); }
 }
 async function sharePaste(req, res, shareId) {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(shareId)) return send(res, 404, { error: "Shared snippet not found." });
   const paste = await CodePaste.findOne({ shareId, visibility: "unlisted" }).lean();
@@ -358,10 +364,25 @@ async function stats(req, res) {
   });
 }
 export default async function handler(req, res) {
+  const path = Array.isArray(req.query?.path) ? req.query.path : [req.query?.path];
+  const parts = path.filter((part) => typeof part === "string" && part.length);
+
+  if (MUTATING_METHODS.has(req.method)) {
+    if (!isSameOrigin(req)) return send(res, 403, { error: "Request origin could not be verified." });
+    const isTicketExchange = parts.join("/") === "auth/exchange";
+    const quota = rateLimit(req, {
+      key: isTicketExchange ? "ticket-exchange" : "vault-mutation",
+      limit: isTicketExchange ? 8 : 120,
+      windowMs: isTicketExchange ? 15 * 60 * 1000 : 60 * 1000
+    });
+    if (!quota.allowed) {
+      res.setHeader("Retry-After", String(quota.retryAfterSeconds));
+      return send(res, 429, { error: "Too many requests. Please wait and try again." });
+    }
+  }
+
   try {
     await connect();
-    const path = Array.isArray(req.query?.path) ? req.query.path : [req.query?.path];
-    const parts = path.filter((part) => typeof part === "string" && part.length);
     if (parts.join("/") === "auth/exchange") return authExchange(req, res);
     if (parts.join("/") === "auth/me") return authMe(req, res);
     if (parts.join("/") === "auth/logout") return authLogout(req, res);
