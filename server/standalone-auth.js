@@ -108,17 +108,20 @@ function publicUser(user, credentials) {
   const providers = Array.isArray(user.authProviders) && user.authProviders.length
     ? user.authProviders.filter((provider) => ["email", "leetmetric"].includes(provider))
     : ["leetmetric"];
+  const profile = user.pasteProfile && typeof user.pasteProfile === "object"
+    ? user.pasteProfile
+    : user;
 
   return {
     id: String(user._id),
-    name: String(user.name || ""),
+    name: String(profile.name || user.name || ""),
     email: String(user.email || credentials?.emailNormalized || ""),
-    bio: String(user.bio || ""),
-    location: String(user.location || ""),
-    avatarUrl: String(user.avatarUrl || ""),
-    website: String(user.website || ""),
-    github: String(user.github || ""),
-    linkedin: String(user.linkedin || ""),
+    bio: String(profile.bio || ""),
+    location: String(profile.location || ""),
+    avatarUrl: String(profile.avatarUrl || ""),
+    website: String(profile.website || ""),
+    github: String(profile.github || ""),
+    linkedin: String(profile.linkedin || ""),
     authProviders: providers,
     emailVerified: Boolean(credentials?.emailVerifiedAt)
   };
@@ -424,9 +427,10 @@ export function createStandaloneAuthHandlers({ User, requireUser, send, bodyOf, 
 
     try {
       const updates = normalizeProfileUpdate(bodyOf(req));
+      // Keep Paste Vault profile fields isolated from the shared LeetMetric identity profile.
       const updated = await User.findByIdAndUpdate(
         user._id,
-        { $set: updates },
+        { $set: { pasteProfile: updates } },
         { new: true, runValidators: true, strict: false }
       ).lean();
       if (!updated) return send(res, 404, { error: "Account not found." });
