@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Mail } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
+import PageTitle from "../components/PageTitle";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -34,6 +35,7 @@ export default function ForgotPassword() {
   }
 
   return (
+      <PageTitle title="Forgot password" />
     <AuthLayout eyebrow="ACCOUNT RECOVERY">
       {result ? (
         <>
