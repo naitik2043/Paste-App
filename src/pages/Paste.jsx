@@ -132,7 +132,7 @@ export default function Paste() {
       anchor.href = url;
       anchor.download = "paste-vault-backup-" + new Date().toISOString().slice(0, 10) + ".json";
       anchor.click();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success("Exported " + allSnippets.length + " snippets.");
     } catch (error) {
       toast.error(error.message);
@@ -165,7 +165,7 @@ export default function Paste() {
           body: JSON.stringify({ name, color: folder.color || "blue" })
         });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok && response.status !== 409) throw new Error(result.error || "Unable to restore collections.");
+        if (!response.ok && !(response.status === 409 && /conflicting record/i.test(result.error || ""))) throw new Error(result.error || "Unable to restore collections.");
         known.add(name.toLocaleLowerCase("en-US"));
       }
       for (let offset = 0; offset < backup.snippets.length; offset += IMPORT_BATCH_SIZE) {
