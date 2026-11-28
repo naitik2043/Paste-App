@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, CircleHelp, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, CircleHelp, ShieldCheck } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 
 const questions = [
