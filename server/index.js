@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import * as validation from "./validation.js";
 import { createRateLimiter, isSameOrigin } from "./security.js";
 
-const { normalizePaste, normalizeShareExpiry, LANGUAGES } = validation;
+const { normalizePaste, normalizeShareExpiry, normalizeFolder, validateImportBatch, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
 const SESSION_COOKIE = "paste_session";
 const rateLimit = createRateLimiter();
@@ -19,6 +19,14 @@ const ticketSchema = new Schema({
   tokenVersion: { type: Number, default: 0 },
   expiresAt: { type: Date, required: true, expires: 0 }
 }, { collection: "integration_tickets", timestamps: true, versionKey: false });
+const folderSchema = new Schema({
+  userId: { type: Schema.Types.ObjectId, required: true, index: true },
+  name: { type: String, required: true, trim: true, maxlength: 40 },
+  nameKey: { type: String, required: true },
+  color: { type: String, default: "blue", enum: ["blue", "violet", "green", "amber", "rose", "slate"] }
+}, { collection: "paste_folders", timestamps: true, versionKey: false });
+folderSchema.index({ userId: 1, nameKey: 1 }, { unique: true });
+
 const revisionSchema = new Schema({
   revisionId: { type: String, required: true },
   title: { type: String, required: true },
@@ -54,6 +62,9 @@ const pasteSchema = new Schema({
   visibility: { type: String, enum: ["private", "unlisted"], default: "private" },
   shareId: { type: String, sparse: true, unique: true },
   shareExpiresAt: { type: Date, default: null },
+  sharePasswordSalt: { type: String, default: "" },
+  sharePasswordHash: { type: String, default: "" },
+  folderId: { type: Schema.Types.ObjectId, default: null, index: true },
   isPinned: { type: Boolean, default: false },
   viewCount: { type: Number, default: 0 },
   history: { type: [revisionSchema], default: [] }
@@ -63,6 +74,7 @@ pasteSchema.index({ userId: 1, isPinned: -1, updatedAt: -1 });
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 const IntegrationTicket = mongoose.models.IntegrationTicket || mongoose.model("IntegrationTicket", ticketSchema);
+const Folder = mongoose.models.PasteFolder || mongoose.model("PasteFolder", folderSchema);
 const CodePaste = mongoose.models.CodePaste || mongoose.model("CodePaste", pasteSchema);
 
 let connectionPromise;
@@ -136,6 +148,43 @@ function makeError(res, error, fallback) {
   return send(res, status, { error: message });
 }
 
+async function ownedFolderId(userId, folderId) {
+  const value = String(folderId || "").trim();
+  if (!value) return null;
+  if (!mongoose.isValidObjectId(value)) {
+    const error = new Error("Choose a valid folder.");
+    error.status = 400;
+    throw error;
+  }
+  const folder = await Folder.findOne({ _id: value, userId }).select("_id").lean();
+  if (!folder) {
+    const error = new Error("That folder does not exist in your workspace.");
+    error.status = 404;
+    throw error;
+  }
+  return folder._id;
+}
+
+function passwordHash(password, salt) {
+  return crypto.scryptSync(password, salt, 64).toString("hex");
+}
+function setSharePassword(paste, password) {
+  if (typeof password !== "string" || password.length < 8 || password.length > 128) {
+    const error = new Error("Share passwords must be between 8 and 128 characters.");
+    error.status = 400;
+    throw error;
+  }
+  const salt = crypto.randomBytes(16).toString("hex");
+  paste.sharePasswordSalt = salt;
+  paste.sharePasswordHash = passwordHash(password, salt);
+}
+function verifySharePassword(password, salt, expectedHash) {
+  if (typeof password !== "string" || !salt || !expectedHash || password.length > 128) return false;
+  const actual = Buffer.from(passwordHash(password, salt), "hex");
+  const expected = Buffer.from(expectedHash, "hex");
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
 function addHistoryRevision(paste) {
   paste.history.unshift({
     revisionId: crypto.randomUUID(),
@@ -180,6 +229,8 @@ function publicPaste(paste, includeContent) {
     tags: paste.tags || [],
     visibility: paste.visibility, shareId: paste.visibility === "unlisted" ? paste.shareId : "",
     shareExpiresAt: paste.visibility === "unlisted" ? paste.shareExpiresAt || null : null,
+    hasSharePassword: Boolean(paste.sharePasswordHash),
+    folderId: paste.folderId ? String(paste.folderId) : "",
     isPinned: Boolean(paste.isPinned), viewCount: Number(paste.viewCount || 0),
     historyCount: (paste.history || []).length, createdAt: paste.createdAt, updatedAt: paste.updatedAt
   };
@@ -253,13 +304,23 @@ async function pasteCollection(req, res) {
     if (LANGUAGES.has(language)) filter.language = language;
     if (["snippet", "solution", "template", "notes"].includes(category)) filter.category = category;
     if (req.query?.pinned === "true") filter.isPinned = true;
+    if (req.query?.folderId === "unfiled") filter.$or = [{ folderId: null }, { folderId: { $exists: false } }];
+    else if (req.query?.folderId) {
+      if (!mongoose.isValidObjectId(req.query.folderId)) return send(res, 400, { error: "Invalid folder filter." });
+      filter.folderId = req.query.folderId;
+    }
     if (q) {
       const escaped = q.split("").map((char) => "\\^$.*+?()[]{}|".includes(char) ? "\\" + char : char).join("");
       const expression = new RegExp(escaped, "i");
-      filter.$or = [
+      const searchFilter = { $or: [
         { title: expression }, { content: expression }, { tags: expression },
         { problemTitle: expression }, { approach: expression }, { keyTakeaway: expression }, { topic: expression }
-      ];
+      ] };
+      if (filter.$or) {
+        const existingOr = filter.$or;
+        delete filter.$or;
+        filter.$and = [{ $or: existingOr }, searchFilter];
+      } else filter.$or = searchFilter.$or;
     }
     const [items, total] = await Promise.all([
       CodePaste.find(filter).sort({ isPinned: -1, updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
@@ -274,6 +335,7 @@ async function pasteCollection(req, res) {
       const shareExpiresAt = data.visibility === "unlisted"
         ? normalizeShareExpiry(requestBody.shareDuration)
         : null;
+      const folderId = await ownedFolderId(user._id, data.folderId);
       const existingCount = await CodePaste.countDocuments({ userId: user._id });
       if (existingCount >= 2000) {
         return send(res, 409, { error: "Your vault has reached its 2,000-snippet limit. Export or remove older snippets to make room." });
@@ -281,8 +343,11 @@ async function pasteCollection(req, res) {
       const paste = await CodePaste.create({
         ...data, userId: user._id,
         shareId: data.visibility === "unlisted" ? crypto.randomBytes(18).toString("base64url") : undefined,
-        shareExpiresAt
+        shareExpiresAt,
+        folderId
       });
+      if (requestBody.sharePassword) setSharePassword(paste, requestBody.sharePassword);
+      await paste.save();
       return send(res, 201, { paste: publicPaste(paste, true) });
     } catch (error) { return makeError(res, error, "Unable to save this snippet."); }
   }
@@ -327,6 +392,9 @@ async function pasteItem(req, res, id, action) {
   try {
     const body = bodyOf(req);
     const data = normalizePaste(body, paste);
+    const folderId = Object.prototype.hasOwnProperty.call(body, "folderId")
+      ? await ownedFolderId(user._id, data.folderId)
+      : paste.folderId || null;
     const revisionFields = [
       "title", "content", "language", "category", "problemTitle", "problemUrl",
       "difficulty", "topic", "approach", "timeComplexity", "spaceComplexity", "keyTakeaway", "tags"
@@ -336,15 +404,25 @@ async function pasteItem(req, res, id, action) {
     );
     if (changed) addHistoryRevision(paste);
     Object.assign(paste, data);
+    paste.folderId = folderId;
     if (body.isPinned !== undefined) paste.isPinned = Boolean(body.isPinned);
     if (data.visibility === "private") {
       paste.shareId = undefined;
       paste.shareExpiresAt = undefined;
+      paste.sharePasswordSalt = "";
+      paste.sharePasswordHash = "";
     } else {
       const isNewShare = !paste.shareId;
       if (isNewShare) paste.shareId = crypto.randomBytes(18).toString("base64url");
       if (isNewShare || Object.prototype.hasOwnProperty.call(body, "shareDuration")) {
         paste.shareExpiresAt = normalizeShareExpiry(body.shareDuration);
+      }
+      if (typeof body.sharePassword === "string" && body.sharePassword.length > 0) {
+        setSharePassword(paste, body.sharePassword);
+      }
+      if (body.removeSharePassword === true) {
+        paste.sharePasswordSalt = "";
+        paste.sharePasswordHash = "";
       }
     }
     await paste.save();
@@ -353,7 +431,7 @@ async function pasteItem(req, res, id, action) {
 }
 async function sharePaste(req, res, shareId) {
   res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
-  if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
+  if (!["GET", "POST"].includes(req.method)) return send(res, 405, { error: "Method not allowed." });
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(shareId)) return send(res, 404, { error: "Shared snippet not found." });
   const now = new Date();
   const paste = await CodePaste.findOne({
@@ -366,9 +444,133 @@ async function sharePaste(req, res, shareId) {
     ]
   }).lean();
   if (!paste) return send(res, 404, { error: "This share link has expired or the snippet is no longer shared." });
+  if (paste.sharePasswordHash) {
+    if (req.method === "GET") return send(res, 401, { requiresPassword: true, error: "A password is required to view this snippet." });
+    const password = bodyOf(req).password;
+    if (!verifySharePassword(password, paste.sharePasswordSalt, paste.sharePasswordHash)) {
+      return send(res, 401, { requiresPassword: true, error: "The password is incorrect." });
+    }
+  } else if (req.method === "POST") {
+    return send(res, 400, { error: "This share link does not require a password. Reload the page." });
+  }
   await CodePaste.updateOne({ _id: paste._id }, { $inc: { viewCount: 1 } });
-  return send(res, 200, { paste: publicPaste({ ...paste, viewCount: Number(paste.viewCount || 0) + 1 }, true) });
+  const responsePaste = publicPaste({ ...paste, viewCount: Number(paste.viewCount || 0) + 1 }, true);
+  delete responsePaste.folderId;
+  delete responsePaste.hasSharePassword;
+  return send(res, 200, { paste: responsePaste });
 }
+async function folderCollection(req, res) {
+  const user = await requireUser(req);
+  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (req.method === "GET") {
+    const folders = await Folder.find({ userId: user._id }).sort({ nameKey: 1 }).lean();
+    return send(res, 200, { folders: folders.map((folder) => ({
+      id: String(folder._id), name: folder.name, color: folder.color, createdAt: folder.createdAt
+    })) });
+  }
+  if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
+  try {
+    const folder = validation.normalizeFolder(bodyOf(req));
+    const count = await Folder.countDocuments({ userId: user._id });
+    if (count >= 100) return send(res, 409, { error: "You can create up to 100 folders." });
+    const created = await Folder.create({ ...folder, userId: user._id });
+    return send(res, 201, { folder: { id: String(created._id), name: created.name, color: created.color } });
+  } catch (error) { return makeError(res, error, "Unable to create this folder."); }
+}
+
+async function folderItem(req, res, id) {
+  const user = await requireUser(req);
+  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  if (!mongoose.isValidObjectId(id)) return send(res, 400, { error: "Invalid folder identifier." });
+  const folder = await Folder.findOne({ _id: id, userId: user._id });
+  if (!folder) return send(res, 404, { error: "Folder not found." });
+  if (req.method === "PATCH") {
+    try {
+      const normalized = validation.normalizeFolder(bodyOf(req));
+      Object.assign(folder, normalized);
+      await folder.save();
+      return send(res, 200, { folder: { id: String(folder._id), name: folder.name, color: folder.color } });
+    } catch (error) { return makeError(res, error, "Unable to update this folder."); }
+  }
+  if (req.method === "DELETE") {
+    await CodePaste.updateMany({ userId: user._id, folderId: folder._id }, { $set: { folderId: null } });
+    await Folder.deleteOne({ _id: folder._id, userId: user._id });
+    return send(res, 200, { ok: true, unfiledCount: await CodePaste.countDocuments({ userId: user._id, folderId: null }) });
+  }
+  return send(res, 405, { error: "Method not allowed." });
+}
+
+async function exportVault(req, res) {
+  if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
+  const user = await requireUser(req);
+  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  const page = Math.max(1, Math.min(1000, Number.parseInt(req.query?.page || "1", 10) || 1));
+  const limit = Math.max(1, Math.min(10, Number.parseInt(req.query?.limit || "3", 10) || 3));
+  const [folders, total, items] = await Promise.all([
+    Folder.find({ userId: user._id }).lean(),
+    CodePaste.countDocuments({ userId: user._id }),
+    CodePaste.find({ userId: user._id }).sort({ createdAt: 1 }).skip((page - 1) * limit).limit(limit).lean()
+  ]);
+  const folderNames = new Map(folders.map((folder) => [String(folder._id), folder.name]));
+  const snippets = items.map((item) => ({
+    title: item.title, content: item.content, language: item.language, category: item.category,
+    problemTitle: item.problemTitle, problemUrl: item.problemUrl, difficulty: item.difficulty,
+    topic: item.topic, approach: item.approach, timeComplexity: item.timeComplexity,
+    spaceComplexity: item.spaceComplexity, keyTakeaway: item.keyTakeaway, tags: item.tags,
+    folderName: item.folderId ? folderNames.get(String(item.folderId)) || "" : "",
+    isPinned: Boolean(item.isPinned)
+  }));
+  return send(res, 200, {
+    format: "paste-vault-export", version: 1, exportedAt: new Date().toISOString(),
+    folders: page === 1 ? folders.map(({ name, color }) => ({ name, color })) : undefined,
+    snippets,
+    pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) }
+  });
+}
+
+async function importVault(req, res) {
+  if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
+  const user = await requireUser(req);
+  if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
+  try {
+    const batch = validateImportBatch(bodyOf(req));
+    const existingCount = await CodePaste.countDocuments({ userId: user._id });
+    if (existingCount + batch.length > 2000) {
+      return send(res, 409, { error: "This import would exceed the 2,000-snippet vault limit." });
+    }
+    const existingFolders = await Folder.find({ userId: user._id }).lean();
+    const folderMap = new Map(existingFolders.map((folder) => [folder.nameKey, folder._id]));
+    for (const entry of batch) {
+      if (!entry.folderName) continue;
+      const nameKey = entry.folderName.toLocaleLowerCase("en-US");
+      if (folderMap.has(nameKey)) continue;
+      const normalized = validation.normalizeFolder({ name: entry.folderName, color: "blue" });
+      if (folderMap.size >= 100) return send(res, 409, { error: "Import needs more folders than your 100-folder limit allows." });
+      const folder = await Folder.findOneAndUpdate(
+        { userId: user._id, nameKey: normalized.nameKey },
+        { $setOnInsert: { ...normalized, userId: user._id } },
+        { new: true, upsert: true }
+      );
+      folderMap.set(nameKey, folder._id);
+    }
+    const documents = batch.map((entry) => {
+      const { folderName, ...data } = entry;
+      return {
+        ...data,
+        folderId: folderName ? folderMap.get(folderName.toLocaleLowerCase("en-US")) || null : null,
+        userId: user._id,
+        visibility: "private",
+        shareId: undefined,
+        shareExpiresAt: null,
+        sharePasswordSalt: "",
+        sharePasswordHash: ""
+      };
+    });
+    await CodePaste.insertMany(documents, { ordered: true });
+    return send(res, 201, { imported: documents.length });
+  } catch (error) { return makeError(res, error, "Unable to import this batch."); }
+}
+
 async function stats(req, res) {
   if (req.method !== "GET") return send(res, 405, { error: "Method not allowed." });
   const user = await requireUser(req);
@@ -394,10 +596,11 @@ export default async function handler(req, res) {
   if (MUTATING_METHODS.has(req.method)) {
     if (!isSameOrigin(req)) return send(res, 403, { error: "Request origin could not be verified." });
     const isTicketExchange = parts.join("/") === "auth/exchange";
+    const isSharePasswordAttempt = parts[0] === "share" && req.method === "POST";
     const quota = rateLimit(req, {
-      key: isTicketExchange ? "ticket-exchange" : "vault-mutation",
-      limit: isTicketExchange ? 8 : 120,
-      windowMs: isTicketExchange ? 15 * 60 * 1000 : 60 * 1000
+      key: isTicketExchange ? "ticket-exchange" : isSharePasswordAttempt ? "share-password" : "vault-mutation",
+      limit: isTicketExchange ? 8 : isSharePasswordAttempt ? 8 : 120,
+      windowMs: isTicketExchange || isSharePasswordAttempt ? 15 * 60 * 1000 : 60 * 1000
     });
     if (!quota.allowed) {
       res.setHeader("Retry-After", String(quota.retryAfterSeconds));
@@ -414,6 +617,10 @@ export default async function handler(req, res) {
     if (parts.length === 2 && parts[0] === "pastes") return pasteItem(req, res, parts[1], "");
     if (parts.length === 3 && parts[0] === "pastes" && parts[2] === "restore") return pasteItem(req, res, parts[1], "restore");
     if (parts.join("/") === "stats") return stats(req, res);
+    if (parts.join("/") === "folders") return folderCollection(req, res);
+    if (parts.length === 2 && parts[0] === "folders") return folderItem(req, res, parts[1]);
+    if (parts.join("/") === "export") return exportVault(req, res);
+    if (parts.join("/") === "import") return importVault(req, res);
     if (parts.length === 2 && parts[0] === "share") return sharePaste(req, res, parts[1]);
     return send(res, 404, { error: "API route not found." });
   } catch (error) {
