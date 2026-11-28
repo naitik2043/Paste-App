@@ -54,8 +54,8 @@ export default function Signup() {
 
   if (result) {
     return (
-      <PageTitle title="Create your account" />
       <AuthLayout eyebrow="ONE MORE STEP">
+        <PageTitle title="Create your account" />
         <div className="auth-success-icon"><CheckCircle2 size={25} /></div>
         <h1 className="auth-title">Check your inbox.</h1>
         <p className="auth-description">{result.message}</p>
