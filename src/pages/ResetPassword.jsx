@@ -53,8 +53,8 @@ export default function ResetPassword() {
   }
 
   return (
+      <AuthLayout eyebrow="SET A NEW PASSWORD">
       <PageTitle title="Reset password" />
-    <AuthLayout eyebrow="SET A NEW PASSWORD">
       {success ? (
         <>
           <div className="auth-success-icon"><CheckCircle2 size={25} /></div>
