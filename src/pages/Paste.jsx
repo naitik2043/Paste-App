@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, SlidersHorizontal, X, Plus } from "lucide-react";
+import { Search, SlidersHorizontal, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import PasteCard from "../components/PasteCard";
 import PageTitle from "../components/PageTitle";
@@ -13,6 +13,11 @@ export default function Paste() {
   const [category, setCategory] = useState("");
   const [pinned, setPinned] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const nextQuery = searchParams.get("search") || searchParams.get("q") || "";
+    setQuery((current) => current === nextQuery ? current : nextQuery);
+  }, [searchParams]);
 
   useEffect(() => {
     let active = true;
