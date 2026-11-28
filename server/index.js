@@ -592,10 +592,11 @@ export default async function handler(req, res) {
     if (!isSameOrigin(req)) return send(res, 403, { error: "Request origin could not be verified." });
     const isTicketExchange = parts.join("/") === "auth/exchange";
     const isSharePasswordAttempt = parts[0] === "share" && req.method === "POST";
+    const isImportRequest = parts.join("/") === "import";
     const quota = rateLimit(req, {
-      key: isTicketExchange ? "ticket-exchange" : isSharePasswordAttempt ? "share-password" : "vault-mutation",
-      limit: isTicketExchange ? 8 : isSharePasswordAttempt ? 8 : 120,
-      windowMs: isTicketExchange || isSharePasswordAttempt ? 15 * 60 * 1000 : 60 * 1000
+      key: isTicketExchange ? "ticket-exchange" : isSharePasswordAttempt ? "share-password" : isImportRequest ? "vault-import" : "vault-mutation",
+      limit: isTicketExchange || isSharePasswordAttempt ? 8 : isImportRequest ? 700 : 120,
+      windowMs: isTicketExchange || isSharePasswordAttempt || isImportRequest ? 15 * 60 * 1000 : 60 * 1000
     });
     if (!quota.allowed) {
       res.setHeader("Retry-After", String(quota.retryAfterSeconds));
