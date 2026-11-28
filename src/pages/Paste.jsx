@@ -29,10 +29,6 @@ export default function Paste() {
       if (language) params.set("language", language);
       if (category) params.set("category", category);
       if (pinned) params.set("pinned", "true");
-      if (query.trim()) params.set("q", query.trim());
-      if (language) params.set("language", language);
-      if (category) params.set("category", category);
-      if (pinned) params.set("pinned", "true");
       try {
         const response = await fetch("/api/pastes?" + params.toString(), { credentials: "same-origin", signal: controller.signal });
         const result = await response.json().catch(() => ({}));
