@@ -5,7 +5,7 @@ import * as validation from "./validation.js";
 import { createRateLimiter, isSameOrigin } from "./security.js";
 import { createSharePassword, verifySharePassword } from "./share-security.js";
 
-const { normalizePaste, normalizeShareExpiry, validateImportBatch, LANGUAGES } = validation;
+const { normalizePaste, normalizeShareExpiry, normalizeShareViewLimit, validateImportBatch, LANGUAGES } = validation;
 const Schema = mongoose.Schema;
 const SESSION_COOKIE = "paste_session";
 const rateLimit = createRateLimiter();
@@ -63,6 +63,8 @@ const pasteSchema = new Schema({
   visibility: { type: String, enum: ["private", "unlisted"], default: "private" },
   shareId: { type: String, sparse: true, unique: true },
   shareExpiresAt: { type: Date, default: null },
+  shareViewLimit: { type: Number, default: 0, min: 0, max: 100 },
+  shareViewCount: { type: Number, default: 0, min: 0 },
   sharePasswordSalt: { type: String, default: "" },
   sharePasswordHash: { type: String, default: "" },
   folderId: { type: Schema.Types.ObjectId, default: null, index: true },
@@ -216,6 +218,8 @@ function publicPaste(paste, includeContent) {
     tags: paste.tags || [],
     visibility: paste.visibility, shareId: paste.visibility === "unlisted" ? paste.shareId : "",
     shareExpiresAt: paste.visibility === "unlisted" ? paste.shareExpiresAt || null : null,
+    shareViewLimit: paste.visibility === "unlisted" ? Number(paste.shareViewLimit || 0) : 0,
+    shareViewCount: paste.visibility === "unlisted" ? Number(paste.shareViewCount || 0) : 0,
     hasSharePassword: Boolean(paste.sharePasswordHash),
     folderId: paste.folderId ? String(paste.folderId) : "",
     isPinned: Boolean(paste.isPinned), viewCount: Number(paste.viewCount || 0),
@@ -322,6 +326,9 @@ async function pasteCollection(req, res) {
       const shareExpiresAt = data.visibility === "unlisted"
         ? normalizeShareExpiry(requestBody.shareDuration)
         : null;
+      const shareViewLimit = data.visibility === "unlisted"
+        ? normalizeShareViewLimit(requestBody.shareViewLimit)
+        : 0;
       const folderId = await ownedFolderId(user._id, data.folderId);
       const existingCount = await CodePaste.countDocuments({ userId: user._id });
       if (existingCount >= 2000) {
@@ -331,6 +338,8 @@ async function pasteCollection(req, res) {
         ...data, userId: user._id,
         shareId: data.visibility === "unlisted" ? crypto.randomBytes(18).toString("base64url") : undefined,
         shareExpiresAt,
+        shareViewLimit,
+        shareViewCount: 0,
         folderId
       });
       if (data.visibility === "unlisted" && requestBody.sharePassword) setSharePassword(paste, requestBody.sharePassword);
@@ -398,9 +407,17 @@ async function pasteItem(req, res, id, action) {
       paste.shareExpiresAt = undefined;
       paste.sharePasswordSalt = "";
       paste.sharePasswordHash = "";
+      paste.shareViewLimit = 0;
+      paste.shareViewCount = 0;
     } else {
       const isNewShare = !paste.shareId;
-      if (isNewShare) paste.shareId = crypto.randomBytes(18).toString("base64url");
+      if (isNewShare) {
+        paste.shareId = crypto.randomBytes(18).toString("base64url");
+        paste.shareViewLimit = normalizeShareViewLimit(body.shareViewLimit);
+        paste.shareViewCount = 0;
+      } else if (Object.prototype.hasOwnProperty.call(body, "shareViewLimit")) {
+        paste.shareViewLimit = normalizeShareViewLimit(body.shareViewLimit);
+      }
       if (isNewShare || Object.prototype.hasOwnProperty.call(body, "shareDuration")) {
         paste.shareExpiresAt = normalizeShareExpiry(body.shareDuration);
       }
@@ -421,7 +438,7 @@ async function sharePaste(req, res, shareId) {
   if (!["GET", "POST"].includes(req.method)) return send(res, 405, { error: "Method not allowed." });
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(shareId)) return send(res, 404, { error: "Shared snippet not found." });
   const now = new Date();
-  const paste = await CodePaste.findOne({
+  const activeLinkFilter = {
     shareId,
     visibility: "unlisted",
     $or: [
@@ -429,8 +446,14 @@ async function sharePaste(req, res, shareId) {
       { shareExpiresAt: { $exists: false } },
       { shareExpiresAt: { $gt: now } }
     ]
-  }).lean();
+  };
+  const paste = await CodePaste.findOne(activeLinkFilter).lean();
   if (!paste) return send(res, 404, { error: "This share link has expired or the snippet is no longer shared." });
+  const viewLimit = Number(paste.shareViewLimit || 0);
+  const viewsUsed = Number(paste.shareViewCount || 0);
+  if (viewLimit > 0 && viewsUsed >= viewLimit) {
+    return send(res, 410, { error: "This share link has reached its view limit." });
+  }
   if (paste.sharePasswordHash) {
     if (req.method === "GET") return send(res, 401, { requiresPassword: true, error: "A password is required to view this snippet." });
     const password = bodyOf(req).password;
@@ -440,10 +463,36 @@ async function sharePaste(req, res, shareId) {
   } else if (req.method === "POST") {
     return send(res, 400, { error: "This share link does not require a password. Reload the page." });
   }
-  await CodePaste.updateOne({ _id: paste._id }, { $inc: { viewCount: 1 } });
-  const responsePaste = publicPaste({ ...paste, viewCount: Number(paste.viewCount || 0) + 1 }, true);
+
+  // Enforce the view limit atomically so concurrent requests cannot exceed it.
+  const accessed = await CodePaste.findOneAndUpdate({
+    ...activeLinkFilter,
+    sharePasswordHash: paste.sharePasswordHash || { $in: ["", null] },
+    $expr: {
+      $or: [
+        { $eq: [{ $ifNull: ["$shareViewLimit", 0] }, 0] },
+        { $lt: [{ $ifNull: ["$shareViewCount", 0] }, { $ifNull: ["$shareViewLimit", 0] }] }
+      ]
+    }
+  }, {
+    $inc: { viewCount: 1, shareViewCount: 1 }
+  }, { new: true }).lean();
+
+  if (!accessed) {
+    const current = await CodePaste.findOne({ shareId, visibility: "unlisted" })
+      .select("shareExpiresAt shareViewLimit shareViewCount").lean();
+    if (current && Number(current.shareViewLimit || 0) > 0 &&
+      Number(current.shareViewCount || 0) >= Number(current.shareViewLimit || 0)) {
+      return send(res, 410, { error: "This share link has reached its view limit." });
+    }
+    return send(res, 404, { error: "This share link has expired or the snippet is no longer shared." });
+  }
+
+  const responsePaste = publicPaste(accessed, true);
   delete responsePaste.folderId;
   delete responsePaste.hasSharePassword;
+  delete responsePaste.shareViewLimit;
+  delete responsePaste.shareViewCount;
   return send(res, 200, { paste: responsePaste });
 }
 async function folderCollection(req, res) {
