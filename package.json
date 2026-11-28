@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "test": "node --test",
     "preview": "vite preview",
-    "check:frontend": "node --check src/utils/launchTicket.js",
+    "check:frontend": "node --check src/utils/launchTicket.js && node --check src/utils/secretDetection.js && node --check src/utils/downloadSnippet.js",
     "check:api": "node --check server/index.js && node --check server/routes.js && node --check server/route-utils.js && node --check api/auth/exchange.js && node --check api/auth/me.js && node --check api/auth/logout.js && node --check api/pastes.js && node --check 'api/pastes/[id].js' && node --check 'api/pastes/[id]/restore.js' && node --check api/stats.js && node --check 'api/share/[shareId].js' && node --check api/folders.js && node --check 'api/folders/[id].js' && node --check api/export.js && node --check api/import.js && node --check server/share-security.js",
     "check": "npm run lint && npm run check:frontend && npm run check:api && npm test && npm run build"
   },
