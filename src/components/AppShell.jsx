@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowUpRight, Code2, FileCode2, HelpCircle, House, LogOut, Menu, Moon, Settings as SettingsIcon, ShieldCheck, Sun, UserRound, X } from "lucide-react";
+import { ArrowUpRight, BarChart3, Code2, FileCode2, GitCompareArrows, HelpCircle, House, LogOut, Menu, Moon, Settings as SettingsIcon, ShieldCheck, Sun, UserRound, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useSession } from "../context/useSession";
 import { LEETMETRIC_URL } from "../constants";
@@ -74,6 +74,8 @@ export default function AppShell() {
           <nav className={"main-nav" + (mobileMenuOpen ? " is-open" : "")} aria-label="Workspace navigation">
             <NavLink to="/dashboard" end><House size={16} /> Overview</NavLink>
             <NavLink to="/pastes"><FileCode2 size={16} /> Snippets</NavLink>
+            <NavLink to="/analytics"><BarChart3 size={16} /> Analytics</NavLink>
+            <NavLink to="/compare"><GitCompareArrows size={16} /> Compare</NavLink>
             <NavLink to="/profile"><UserRound size={16} /> Profile</NavLink>
             <NavLink to="/settings"><SettingsIcon size={16} /> Settings</NavLink>
           </nav>
