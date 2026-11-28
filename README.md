@@ -17,7 +17,7 @@ Paste Vault helps developers preserve both the implementation and the reasoning 
 - **Structured solution journal:** record the problem, language, difficulty, topic, intuition, time and space complexity, key takeaways and edge cases.
 - **Searchable library:** search titles, code, problem titles, topics and tags; filter by language, category and pinned state.
 - **Version history:** edits create revision snapshots; restore an earlier version when needed.
-- **Controlled sharing:** explicitly create an unlisted link, or disable it to return the snippet to private visibility.
+- **Controlled sharing:** create unlisted links with 1-day, 7-day, 30-day or no-expiry policies; update expiration or revoke access at any time.
 - **Developer-friendly rendering:** syntax highlighting, copy-to-clipboard and direct links to the original problem.
 - **Workspace insights:** track saved snippets, pinned references, active share links, stored content and language distribution.
 - **Responsive interface:** polished desktop/mobile layout with persisted light and dark themes.
@@ -146,7 +146,7 @@ Redeploy both applications after configuration changes. Never commit `.env`, con
 - Session cookies are HttpOnly; deployed cookies use Secure settings.
 - Private API responses are non-cacheable, and unlisted pages send no-index headers.
 - The application displays code; it does not execute submitted snippets.
-- Unlisted URLs are bearer links: anyone who obtains one can view its snippet. Do not put secrets or credentials in shared snippets.
+- Unlisted URLs are bearer links: anyone who obtains an active link can view its snippet until it expires or is revoked. Do not put secrets or credentials in shared snippets.
 - Do not store passwords, API keys, private keys, session tokens or sensitive personal information in Paste Vault.
 
 The current product focuses on a private learning and reference workspace. Features such as public discovery, folder collaboration, password-protected shares, expiring links and client-side zero-knowledge encryption are not represented as available unless implemented and tested.
@@ -154,7 +154,7 @@ The current product focuses on a private learning and reference workspace. Featu
 ## Roadmap
 
 - [ ] Optional folders and nested collections
-- [ ] Expiring share links and view limits
+- [ ] Share-link view limits
 - [ ] Password-protected sharing
 - [ ] Browser-side encryption for a dedicated secure-share mode
 - [ ] Import/export (JSON, Markdown and GitHub Gist)
