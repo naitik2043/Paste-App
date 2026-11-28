@@ -35,8 +35,8 @@ export default function ForgotPassword() {
   }
 
   return (
+      <AuthLayout eyebrow="ACCOUNT RECOVERY">
       <PageTitle title="Forgot password" />
-    <AuthLayout eyebrow="ACCOUNT RECOVERY">
       {result ? (
         <>
           <div className="auth-success-icon"><CheckCircle2 size={25} /></div>
