@@ -22,7 +22,8 @@ function toEditForm(paste) {
     timeComplexity: paste.timeComplexity || "",
     spaceComplexity: paste.spaceComplexity || "",
     keyTakeaway: paste.keyTakeaway || "",
-    tags: (paste.tags || []).join(", ")
+    tags: (paste.tags || []).join(", "),
+    folderId: paste.folderId || ""
   };
 }
 
@@ -36,6 +37,9 @@ export default function ViewPaste() {
   const [editForm, setEditForm] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [shareDuration, setShareDuration] = useState("7d");
+  const [sharePassword, setSharePassword] = useState("");
+  const [removeSharePassword, setRemoveSharePassword] = useState(false);
+  const [folders, setFolders] = useState([]);
   const [secretAcknowledged, setSecretAcknowledged] = useState(false);
   const [shareSecretAcknowledged, setShareSecretAcknowledged] = useState(false);
   const editSecretWarnings = detectPotentialSecrets(editForm?.content || "");
@@ -58,6 +62,16 @@ export default function ViewPaste() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch("/api/folders", { credentials: "same-origin" })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || "Unable to load collections.");
+        setFolders(result.folders || []);
+      })
+      .catch((error) => toast.error(error.message));
+  }, []);
 
   function downloadCode() {
     try {
@@ -148,17 +162,34 @@ export default function ViewPaste() {
       return toast.error("Review the sensitive-content warning before creating a share link.");
     }
     try {
+      if (sharePassword && sharePassword.length < 8) {
+        return toast.error("Share passwords must contain at least 8 characters.");
+      }
       const wasAlreadyShared = paste.visibility === "unlisted";
-      const updated = await update({ visibility: "unlisted", shareDuration });
+      const fields = { visibility: "unlisted", shareDuration };
+      if (sharePassword) fields.sharePassword = sharePassword;
+      if (removeSharePassword) fields.removeSharePassword = true;
+      const updated = await update(fields);
+      setSharePassword("");
+      setRemoveSharePassword(false);
       if (!wasAlreadyShared) {
         const url = window.location.origin + "/share/" + updated.shareId;
         await navigator.clipboard.writeText(url);
         toast.success("Unlisted share link copied.");
       } else {
-        toast.success("Share link expiration updated.");
+        toast.success("Share settings updated.");
       }
     } catch (error) {
       toast.error(error.message);
+    }
+  }
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.origin + "/share/" + paste.shareId);
+      toast.success("Share link copied.");
+    } catch {
+      toast.error("Clipboard access was blocked by your browser.");
     }
   }
 
@@ -226,6 +257,11 @@ export default function ViewPaste() {
           <p className="eyebrow">CONTROLLED SHARING</p>
           <h2>Unlisted share link</h2>
           <p>{paste.visibility === "unlisted" ? "Your snippet is accessible to anyone with its link. Update its expiry or disable the link at any time." : "Create a read-only link when you need to share this snippet. It stays private until you enable sharing."}</p>
+          {paste.visibility === "unlisted" && <p className="share-security-status">{paste.hasSharePassword ? "Password protection is enabled." : "Anyone with the active link can view this snippet."}</p>}
+          <label className="share-password-field" htmlFor="share-password">{paste.hasSharePassword ? "CHANGE SHARE PASSWORD" : "OPTIONAL SHARE PASSWORD"}
+            <input id="share-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={sharePassword} onChange={(event) => setSharePassword(event.target.value)} placeholder={paste.hasSharePassword ? "Enter a new password to replace it" : "At least 8 characters"} />
+          </label>
+          {paste.hasSharePassword && <label className="share-remove-password"><input type="checkbox" checked={removeSharePassword} onChange={(event) => setRemoveSharePassword(event.target.checked)} /> Remove password protection</label>}
           {paste.visibility === "unlisted" && <small>{paste.shareExpiresAt ? "Current expiry: " + new Date(paste.shareExpiresAt).toLocaleString() : "Current link has no expiry. Set one below to limit access."}</small>}
           {paste.visibility !== "unlisted" && <SecretWarningNotice warnings={shareSecretWarnings} acknowledged={shareSecretAcknowledged} onAcknowledge={setShareSecretAcknowledged} />}
         </div>
@@ -239,6 +275,7 @@ export default function ViewPaste() {
             </select>
           </label>
           <button className="primary-button" type="button" onClick={share}><Share2 size={15} /> {paste.visibility === "unlisted" ? "Update expiry" : "Create share link"}</button>
+          {paste.visibility === "unlisted" && <button className="secondary-button" type="button" onClick={copyShareLink}><Link2 size={14} /> Copy link</button>}
           {paste.visibility === "unlisted" && <button className="secondary-button" type="button" onClick={disableShare}>Disable link</button>}
         </div>
       </section>
@@ -276,6 +313,11 @@ export default function ViewPaste() {
             <div><label htmlFor="edit-topic">TOPIC / PATTERN</label><input id="edit-topic" maxLength={60} value={editForm.topic} onChange={(event) => changeEditField("topic", event.target.value)} /></div>
             <div><label htmlFor="edit-tags">TAGS <span className="label-muted">COMMA SEPARATED</span></label><input id="edit-tags" value={editForm.tags} onChange={(event) => changeEditField("tags", event.target.value)} /></div>
           </div>
+          <label htmlFor="edit-folder">COLLECTION</label>
+          <select id="edit-folder" value={editForm.folderId} onChange={(event) => changeEditField("folderId", event.target.value)}>
+            <option value="">Unfiled</option>
+            {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+          </select>
           <div className="editor-actions">
             <span>Edits are saved to version history.</span>
             <button className="primary-button" type="submit" disabled={saving}><Save size={15} /> {saving ? "Saving…" : "Save changes"}</button>
