@@ -18,7 +18,7 @@ Paste Vault helps developers preserve both the implementation and the reasoning 
 - **Structured solution journal:** record the problem, language, difficulty, topic, intuition, time and space complexity, key takeaways and edge cases.
 - **Searchable library:** search titles, code, problem titles, topics and tags; filter by language, category and pinned state.
 - **Version history:** edits create revision snapshots; restore an earlier version when needed.
-- **Controlled sharing:** create unlisted links with 1-day, 7-day, 30-day or no-expiry policies; add password protection, update expiration or revoke access at any time.
+- **Controlled sharing:** create unlisted links with 1-day, 7-day, 30-day or no-expiry policies; add password protection, cap successful views at 1, 5, 10, 25 or 100, and revoke access at any time.
 - **Credential hygiene warning:** a client-side advisory detects several common token, private-key and database-URI patterns before saving. Users must acknowledge warnings, but this is not a substitute for secret management or a security scanner.
 - **Developer-friendly rendering:** syntax highlighting, copy-to-clipboard, language-aware code downloads and direct links to the original problem.
 - **Workspace insights:** track saved snippets, pinned references, active share links, stored content and language distribution.
@@ -146,7 +146,7 @@ Redeploy both applications after configuration changes. Never commit `.env`, con
 | GET / PATCH / DELETE | `/api/pastes/:id` | Read or manage an owned snippet |
 | POST | `/api/pastes/:id/restore` | Restore a saved revision |
 | GET | `/api/stats` | Workspace and language insights |
-| GET / POST | `/api/share/:shareId` | Read an unlisted snippet or unlock a password-protected share |
+| GET / POST | `/api/share/:shareId` | Read an unlisted snippet or unlock a password-protected share; enforce expiry and successful-view caps |
 
 ## Security and privacy
 
@@ -157,6 +157,7 @@ Redeploy both applications after configuration changes. Never commit `.env`, con
 - The application displays code; it does not execute submitted snippets.
 - Unlisted URLs are bearer links: anyone who obtains an active link can view its snippet until it expires or is revoked. Password-protected links require a separate password.
 - Share passwords are salted and derived with Node.js scrypt; the plaintext password is never stored. Password verification uses a constant-time comparison and is rate-limited.
+- Optional share view caps are enforced atomically in MongoDB. Only successful content views count; incorrect password attempts do not consume a view. Setting the limit to Unlimited keeps access uncapped.
 - JSON backups intentionally exclude active share IDs, share passwords and revision history. Imports always create private snippets so a backup cannot silently reactivate old public links.
 - Do not store passwords, API keys, private keys, session tokens or sensitive personal information in Paste Vault.
 
@@ -164,11 +165,11 @@ The current product focuses on a private, single-owner learning and reference wo
 
 ## Quality and verification
 
-Run `npm run check` before submitting changes. The suite includes validation, share-password hashing, same-origin and rate-limit behavior, route mapping, launch-ticket parsing, secret-warning patterns, and snippet filename generation. CI also runs a production-dependency vulnerability audit.
+Run `npm run check` before submitting changes. The suite includes validation (including view-limit boundaries), share-password hashing, same-origin and rate-limit behavior, route mapping, launch-ticket parsing, secret-warning patterns, and snippet filename generation. CI also runs a production-dependency vulnerability audit.
 
 ## Roadmap
 
-- [ ] Share-link view limits
+- [x] Share-link view limits
 - [ ] Browser-side encryption for a dedicated secure-share mode
 - [ ] Markdown and GitHub Gist import/export
 - [ ] Multi-file snippets and downloadable archives
