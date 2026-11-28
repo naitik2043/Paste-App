@@ -49,6 +49,6 @@ test("normalizes editable profile fields and enforces HTTPS links", () => {
     github: "https://github.com/ada",
     linkedin: "https://linkedin.com/in/ada"
   });
-  assert.throws(() => normalizeProfileUpdate({ name: "Ada", website: "javascript:alert(1)" }), /HTTPS URL/);
+  assert.throws(() => normalizeProfileUpdate({ name: "Ada", website: "javascript:alert(1)" }), /valid website URL/);
   assert.throws(() => normalizeProfileUpdate({ name: " " }), /required/);
 });
