@@ -20,6 +20,8 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Analytics from "./pages/Analytics";
+import Compare from "./pages/Compare";
 
 function LoadingScreen() {
   return (
@@ -74,6 +76,8 @@ const router = createBrowserRouter([
     children: [
       { path: "/dashboard", element: <Home /> },
       { path: "/pastes", element: <Paste /> },
+      { path: "/analytics", element: <Analytics /> },
+      { path: "/compare", element: <Compare /> },
       { path: "/pastes/:id", element: <ViewPaste /> },
       { path: "/profile", element: <Profile /> },
       { path: "/settings", element: <Settings /> }
