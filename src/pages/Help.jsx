@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight, CircleHelp, LockKeyhole, ShieldCheck } from "lucide-react";
+import PageTitle from "../components/PageTitle";
 
 const questions = [
   ["Do I need a LeetMetric account?", "No. You can create and use a Paste Vault account directly with your email address. LeetMetric single sign-on remains available for existing integrated users."],
@@ -13,6 +14,7 @@ const questions = [
 
 export default function Help() {
   return (
+      <PageTitle title="Help centre" description="Answers about Paste Vault accounts, private snippets, sharing, account recovery and LeetMetric integration." noindex={false} />
     <div className="public-content-page">
       <section className="public-page-hero compact"><div className="landing-pill"><CircleHelp size={14} /> HELP CENTRE</div><h1>Questions, <span>answered.</span></h1><p>Quick guidance for setting up your account, protecting your snippets and getting the most from your workspace.</p></section>
       <div className="help-layout">
