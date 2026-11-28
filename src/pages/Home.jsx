@@ -133,7 +133,11 @@ export default function Home() {
           <div className="panel-heading"><div><p className="eyebrow">YOUR LIBRARY</p><h2>Knowledge, reusable.</h2></div><Braces size={22} /></div>
           <p className="insight-copy">A solution is more valuable when you can retrieve the pattern behind it. Keep the code, link the problem and add the note you wish you had next time.</p>
           <div className="insight-list"><div><FileCode2 size={17} /><span><strong>Problem-linked code</strong><small>Connect a snippet to its LeetCode problem.</small></span></div><div><Tag size={17} /><span><strong>Searchable patterns</strong><small>Organize by topic, language and custom tags.</small></span></div><div><LockKeyhole size={17} /><span><strong>Private by default</strong><small>Sharing only happens when you choose Unlisted.</small></span></div></div>
-          <Link className="secondary-link" to="/pastes">Browse all snippets <ArrowRight size={16} /></Link>
+          <div className="workspace-shortcuts">
+            <Link className="secondary-link" to="/pastes">Browse all snippets <ArrowRight size={16} /></Link>
+            <Link className="secondary-link" to="/analytics">Explore DSA analytics <ArrowRight size={16} /></Link>
+            <Link className="secondary-link" to="/compare">Compare saved solutions <ArrowRight size={16} /></Link>
+          </div>
           <div className="language-breakdown"><p className="eyebrow">TOP LANGUAGES</p>{(stats?.topLanguages || []).length ? stats.topLanguages.map((row) => <div key={row.language}><span>{row.language}</span><b>{row.count}</b></div>) : <p className="muted-copy">Your language trends appear after you save snippets.</p>}</div>
         </aside>
       </section>
