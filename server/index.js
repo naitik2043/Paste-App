@@ -463,9 +463,17 @@ async function folderCollection(req, res) {
   const user = await requireUser(req);
   if (!user) return send(res, 401, { error: "Open Paste Vault from your signed-in LeetMetric dashboard." });
   if (req.method === "GET") {
-    const folders = await Folder.find({ userId: user._id }).sort({ nameKey: 1 }).lean();
+    const [folders, counts] = await Promise.all([
+      Folder.find({ userId: user._id }).sort({ nameKey: 1 }).lean(),
+      CodePaste.aggregate([
+        { $match: { userId: user._id, folderId: { $ne: null } } },
+        { $group: { _id: "$folderId", count: { $sum: 1 } } }
+      ])
+    ]);
+    const countMap = new Map(counts.map((row) => [String(row._id), row.count]));
     return send(res, 200, { folders: folders.map((folder) => ({
-      id: String(folder._id), name: folder.name, color: folder.color, createdAt: folder.createdAt
+      id: String(folder._id), name: folder.name, color: folder.color,
+      count: countMap.get(String(folder._id)) || 0, createdAt: folder.createdAt
     })) });
   }
   if (req.method !== "POST") return send(res, 405, { error: "Method not allowed." });
